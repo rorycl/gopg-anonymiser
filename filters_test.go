@@ -184,7 +184,7 @@ func TestAllFilters(t *testing.T) {
 			if err != nil {
 				t.Errorf(
 					"Error filter %s at row linenumber %d: %v\n",
-					f.TypeName(), r.LineNo, err,
+					f.FilterName(), r.LineNo, err,
 				)
 			}
 		}

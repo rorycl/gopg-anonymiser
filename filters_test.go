@@ -29,12 +29,28 @@ func init() {
 	}
 }
 
+func TestRowDeleteFilter(t *testing.T) {
+
+	filter := NewRowDeleteFilter()
+
+	for i, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", i, err)
+		}
+		if ro.Columns != nil {
+			t.Error("columns should be an empty struct")
+		}
+		t.Logf("%+v\n", ro)
+	}
+}
+
 func TestStringReplaceFilter(t *testing.T) {
 
-	filter := RowStringReplaceFilter{
-		Column:      "password",
-		Replacement: "APassword",
-	}
+	filter := NewRowStringReplaceFilter(
+		"password",
+		"APassword",
+	)
 
 	for _, r := range rows {
 		ro, err := filter.Filter(r)

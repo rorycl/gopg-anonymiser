@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"strings"
 )
 
 // Row holds a line (represented by columnar data) from a postgresql
@@ -23,11 +27,12 @@ type RowFilterer interface {
 
 // RowDeleteFilter removes all lines
 type RowDeleteFilter struct {
+	Typer string
 }
 
 // NewRowDeleteFilter makes a new RowDeleteFilter
-func NewRowDeleteFilter() *RowDeleteFilter {
-	return &RowDeleteFilter{}
+func NewRowDeleteFilter() (*RowDeleteFilter, error) {
+	return &RowDeleteFilter{"delete"}, nil
 }
 
 // Filter returns an empty row
@@ -39,18 +44,27 @@ func (f RowDeleteFilter) Filter(r Row) (Row, error) {
 // RowStringReplaceFilter replaces a column named "Column" with the
 // provided replacement string
 type RowStringReplaceFilter struct {
+	Typer       string
 	Column      string
 	Replacement string
 	colNo       int
 }
 
 // NewRowStringReplaceFilter makes a new RowStringReplaceFilter
-func NewRowStringReplaceFilter(column, replacement string) *RowStringReplaceFilter {
-	return &RowStringReplaceFilter{
+func NewRowStringReplaceFilter(column, replacement string) (*RowStringReplaceFilter, error) {
+	r := &RowStringReplaceFilter{
+		Typer:       "string replace",
 		Column:      column,
 		Replacement: replacement,
 		colNo:       -1,
 	}
+	if column == "" {
+		return r, errors.New("string replacer: column name cannot be empty")
+	}
+	if replacement == "" {
+		return r, errors.New("string replacer: replacement string cannot be empty")
+	}
+	return r, nil
 }
 
 // Filter replaces a column with a fixed string replacement
@@ -71,7 +85,7 @@ func (f RowStringReplaceFilter) Filter(r Row) (Row, error) {
 		}
 		if f.colNo == -1 {
 			return r, fmt.Errorf(
-				"Could not find column %s in RowStringReplaceFilter", f.Column,
+				"string replacer: could not find column %s in RowStringReplaceFilter", f.Column,
 			)
 		}
 	}
@@ -82,12 +96,40 @@ func (f RowStringReplaceFilter) Filter(r Row) (Row, error) {
 
 }
 
-/*
 // RowFileReplaceFilter reads the contents of file into the struct and
 // uses this to replace the contents of the designated column
 type RowFileReplaceFilter struct {
+	Typer        string
 	Column       string
 	Replacements []string
+}
+
+// NewRowFileReplaceFilter makes a new RowFileReplaceFilter
+func NewRowFileReplaceFilter(column string, f io.Reader) (*RowFileReplaceFilter, error) {
+
+	r := &RowFileReplaceFilter{
+		Typer:  "file replace",
+		Column: column,
+	}
+	if column == "" {
+		return r, errors.New("file replacer: column name cannot be empty")
+	}
+
+	// append the replacement lines to the replacement slice
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		t := scanner.Text()
+		if strings.Contains(t, ",") {
+			return r, errors.New("file replacer: source contains a comma")
+		}
+		r.Replacements = append(r.Replacements, t)
+	}
+	// return an error if the scanner failed
+	if err := scanner.Err(); err != nil {
+		return r, err
+	}
+
+	return r, nil
 }
 
 // Filter replaces a column with the replacement indexed by the provided
@@ -111,13 +153,14 @@ func (f RowFileReplaceFilter) Filter(r Row) (Row, error) {
 	}
 	if colNo == -1 {
 		return r, fmt.Errorf(
-			"Could not find column %s in RowFileReplaceFilter", f.Column,
+			"file replacer: could not find column %s in RowFileReplaceFilter", f.Column,
 		)
 	}
 
-	// replace the column contents
-	r.Columns[colNo] = f.Replacement
+	// replace the column contents with the replacement equalling the (1
+	// indexed) row number of the input with the modulo of the length of
+	// the replacements
+	r.Columns[colNo] = f.Replacements[(r.LineNo-1)%len(f.Replacements)]
 	return r, nil
 
 }
-*/

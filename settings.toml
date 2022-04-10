@@ -1,0 +1,29 @@
+title = "example settings file for gopg-anonymiser"
+
+[messages]
+tablename = "public.messages"
+
+[[messages.filter]]
+column = "all"
+filter = "delete"
+source = ""
+
+[users]
+# filters = [
+# 	{ column = "name", filter = "file_replace", source = "/tmp/newnames" }
+# 	{ column = "password", filter = "string_replace", source = "a password" }
+# ]
+tablename = "public.users"
+
+[[users.filter]]
+column = "name"
+filter = "file_replace"
+source = "/tmp/newnames.txt"
+
+[[users.filter]]
+column = "password"
+filter = "string_replace"
+source = "this is a password"
+
+
+

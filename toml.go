@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/BurntSushi/toml"
 )
 
@@ -35,13 +32,4 @@ func LoadToml(file string) (Tables, error) {
 		return tables, err
 	}
 	return tables, nil
-}
-
-func main() {
-	lt, err := LoadToml("settings.toml")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Printf("%+v\n", lt)
 }

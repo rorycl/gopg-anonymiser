@@ -22,6 +22,9 @@ type Row struct {
 // RowFilterer is the interface that any row filter needs to fulfil to
 // filter a row, perhaps on a column basis, and allow chaining of
 type RowFilterer interface {
+	// TypeName returns the name of the filter
+	TypeName() string
+	// Filter performs filtering on a row of data
 	Filter(r Row) (Row, error)
 }
 
@@ -39,6 +42,11 @@ func NewRowDeleteFilter() (*RowDeleteFilter, error) {
 func (f RowDeleteFilter) Filter(r Row) (Row, error) {
 	var rr Row
 	return rr, nil
+}
+
+// TypeName returns the Typer information about the RowDeleteFilter
+func (f RowDeleteFilter) TypeName() string {
+	return f.Typer
 }
 
 // RowStringReplaceFilter replaces a column named "Column" with the
@@ -94,6 +102,11 @@ func (f RowStringReplaceFilter) Filter(r Row) (Row, error) {
 	r.Columns[f.colNo] = f.Replacement
 	return r, nil
 
+}
+
+// TypeName returns the Typer information about the RowStringReplaceFilter
+func (f RowStringReplaceFilter) TypeName() string {
+	return f.Typer
 }
 
 // RowFileReplaceFilter reads the contents of file into the struct and
@@ -163,4 +176,9 @@ func (f RowFileReplaceFilter) Filter(r Row) (Row, error) {
 	r.Columns[colNo] = f.Replacements[(r.LineNo-1)%len(f.Replacements)]
 	return r, nil
 
+}
+
+// TypeName returns the Typer information about the RowFileReplaceFilter
+func (f RowFileReplaceFilter) TypeName() string {
+	return f.Typer
 }

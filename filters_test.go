@@ -178,12 +178,13 @@ func TestAllFilters(t *testing.T) {
 
 	for _, r := range rows {
 		ro := r
+		// use interface
 		for _, f := range []RowFilterer{filter, filter2, filter3} {
 			ro, err = f.Filter(ro)
 			if err != nil {
 				t.Errorf(
-					"Error filter at row linenumber %d: %v\n",
-					r.LineNo, err,
+					"Error filter %s at row linenumber %d: %v\n",
+					f.TypeName(), r.LineNo, err,
 				)
 			}
 		}

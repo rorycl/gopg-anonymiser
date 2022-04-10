@@ -4,15 +4,15 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// TableSettings describes types of tables described in the settings
+// Settings describes types of tables described in the settings
 // toml file
-type TableSettings struct {
+type Settings struct {
 	Title  string
-	Tables map[string]table
+	Tables map[string]SettingTable
 }
 
-// Table structure
-type table struct {
+// SettingTable sets out the filters for a Table
+type SettingTable struct {
 	TableName string
 	Filters   []filters
 }
@@ -25,9 +25,9 @@ type filters struct {
 }
 
 // LoadToml loads a toml file and returns a Tables structure
-func LoadToml(file string) (TableSettings, error) {
+func LoadToml(file string) (Settings, error) {
 
-	var tables TableSettings
+	var tables Settings
 	_, err := toml.DecodeFile(file, &tables)
 	if err != nil {
 		return tables, err

@@ -1,4 +1,4 @@
-module campbell-lange.net/pg-anonymise
+module campbell-lange.net/gopg-anonymise
 
 go 1.17
 

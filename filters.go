@@ -132,8 +132,8 @@ func NewRowFileReplaceFilter(column string, f io.Reader) (*RowFileReplaceFilter,
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		t := scanner.Text()
-		if strings.Contains(t, ",") {
-			return r, errors.New("file replacer: source contains a comma")
+		if strings.Contains(t, "\t") {
+			return r, errors.New("file replacer: source contains a tab")
 		}
 		r.Replacements = append(r.Replacements, t)
 	}

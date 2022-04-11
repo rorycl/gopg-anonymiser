@@ -96,15 +96,15 @@ func TestFileReplaceFilterFail(t *testing.T) {
 	t.Log(err)
 }
 
-func TestFileReplaceFilterCommaFail(t *testing.T) {
+func TestFileReplaceFilterTabFail(t *testing.T) {
 
-	reader := strings.NewReader("replace1\nreplace,2")
+	reader := strings.NewReader("replace1\nreplace\t2")
 	_, err := NewRowFileReplaceFilter(
 		"name",
 		reader,
 	)
 	if err == nil {
-		t.Error("RowFileReplaceFilter init should fail with comma fail")
+		t.Error("RowFileReplaceFilter init should fail with tab fail")
 	}
 	t.Log(err)
 }

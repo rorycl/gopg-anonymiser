@@ -64,8 +64,8 @@ func NewDumpTable(copyLine string, interestingTables []string) (*DumpTable, erro
 	return d, nil
 }
 
-// LineSplitter returns returns true and the fields of the requisite
-// table if the table is still being read, false otherwise
+// LineSplitter returns the fields of the requisite table and true if
+// the table is still being read, false otherwise
 func (dt *DumpTable) LineSplitter(line string) ([]string, bool) {
 
 	s := []string{}

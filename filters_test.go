@@ -53,7 +53,7 @@ func TestStringReplaceFilterFail(t *testing.T) {
 		"APassword",
 	)
 	if err == nil {
-		t.Error("NewRowStringReplaceFilter init should faile")
+		t.Error("NewRowStringReplaceFilter init should fail")
 	}
 
 }

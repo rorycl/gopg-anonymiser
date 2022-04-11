@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -60,7 +61,7 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 }
 
 // Anonymise anonymises a postgresql dump file
-func Anonymise(dumpFile string, settingsFile string) error {
+func Anonymise(dumpFile, settingsFile string, output io.Writer, changedOnly bool) error {
 
 	// load dump file
 	filer, err := os.Open(dumpFile)
@@ -73,6 +74,9 @@ func Anonymise(dumpFile string, settingsFile string) error {
 	if err != nil {
 		return fmt.Errorf("settings file load error %s", err)
 	}
+
+	// load writer
+	writer := bufio.NewWriter(output)
 
 	interestingTables := []string{}
 	for _, t := range settings.Tables {
@@ -120,7 +124,13 @@ func Anonymise(dumpFile string, settingsFile string) error {
 			columns, ok := dt.LineSplitter(scanner.Text())
 			if !ok {
 				dt = new(DumpTable)
-				fmt.Println(t) // fixme
+				if changedOnly {
+					continue
+				}
+				_, err := writer.WriteString(t + "\n")
+				if err != nil {
+					return fmt.Errorf("write error: %w", err)
+				}
 				continue
 			}
 
@@ -149,8 +159,21 @@ func Anonymise(dumpFile string, settingsFile string) error {
 		if t == "row deleted" {
 			continue
 		}
+
 		// output
-		fmt.Println(t)
+		if changedOnly && !dt.Inited() {
+			continue
+		}
+
+		_, err := writer.WriteString(t + "\n")
+		if err != nil {
+			return fmt.Errorf("write error: %w", err)
+		}
+		err = writer.Flush()
+		if err != nil {
+			return fmt.Errorf("flush error: %w", err)
+		}
 	}
+
 	return nil
 }

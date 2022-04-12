@@ -75,9 +75,6 @@ func Anonymise(dumpFile, settingsFile string, output io.Writer, changedOnly bool
 		return fmt.Errorf("settings file load error %s", err)
 	}
 
-	// load writer
-	writer := bufio.NewWriter(output)
-
 	interestingTables := []string{}
 	for _, t := range settings.Tables {
 		interestingTables = append(interestingTables, t.TableName)
@@ -127,7 +124,7 @@ func Anonymise(dumpFile, settingsFile string, output io.Writer, changedOnly bool
 				if changedOnly {
 					continue
 				}
-				_, err := writer.WriteString(t + "\n")
+				_, err := io.WriteString(output, t+"\n")
 				if err != nil {
 					return fmt.Errorf("write error: %w", err)
 				}
@@ -165,13 +162,9 @@ func Anonymise(dumpFile, settingsFile string, output io.Writer, changedOnly bool
 			continue
 		}
 
-		_, err := writer.WriteString(t + "\n")
+		_, err := io.WriteString(output, t+"\n")
 		if err != nil {
 			return fmt.Errorf("write error: %w", err)
-		}
-		err = writer.Flush()
-		if err != nil {
-			return fmt.Errorf("flush error: %w", err)
 		}
 	}
 

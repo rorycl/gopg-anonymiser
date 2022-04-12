@@ -61,13 +61,7 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 }
 
 // Anonymise anonymises a postgresql dump file
-func Anonymise(dumpFile, settingsFile string, output io.Writer, changedOnly bool) error {
-
-	// load dump file
-	filer, err := os.Open(dumpFile)
-	if err != nil {
-		return fmt.Errorf("dump file load error %s", err)
-	}
+func Anonymise(dumpFile io.Reader, settingsFile string, output io.Writer, changedOnly bool) error {
 
 	// load settings
 	settings, err := LoadToml(settingsFile)
@@ -84,7 +78,7 @@ func Anonymise(dumpFile, settingsFile string, output io.Writer, changedOnly bool
 	dt := new(DumpTable)
 	dtFilters := []RowFilterer{}
 
-	scanner := bufio.NewScanner(filer)
+	scanner := bufio.NewScanner(dumpFile)
 
 	var lineNo = 0
 	for scanner.Scan() {

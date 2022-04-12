@@ -15,13 +15,14 @@ func TestAnonymiseNoFail(t *testing.T) {
 		t.Error("could not make dump tempfile")
 	}
 	defer os.Remove(dumpFile.Name())
+
 	settingsFile, err := ioutil.TempFile("/tmp/", "setting_")
 	if err != nil {
 		t.Error("could not make setting tempfile")
 	}
 	defer os.Remove(settingsFile.Name())
 
-	err = Anonymise(dumpFile.Name(), settingsFile.Name(), os.Stdout, false)
+	err = Anonymise(dumpFile, settingsFile.Name(), os.Stdout, false)
 	if err != nil {
 		t.Error("empty files should not fail")
 	}
@@ -29,24 +30,34 @@ func TestAnonymiseNoFail(t *testing.T) {
 
 func TestAnonymiseFail(t *testing.T) {
 
-	dumpFile := "/tmp/abc/def.sql"
+	dumpFile, err := ioutil.TempFile("/tmp/", "dump_")
+	if err != nil {
+		t.Error("could not make dump tempfile")
+	}
+	defer os.Remove(dumpFile.Name())
+
 	settingsFile := "/tmp/ghi/jkl.toml"
 
-	err := Anonymise(dumpFile, settingsFile, os.Stdout, false)
+	err = Anonymise(dumpFile, settingsFile, os.Stdout, false)
 	if err == nil {
-		t.Error("nonsense settings and toml files should fail")
+		t.Error("nonsense toml files should fail")
 	}
-	t.Errorf("nonsense file error %s", err)
+	t.Logf("nonsense file error %s", err)
 }
 
 func TestAnonymiseOK(t *testing.T) {
 
 	dumpFile := "testdata/pg_dump.sql"
+	df, err := os.Open(dumpFile)
+	if err != nil {
+		t.Errorf("Could not open test dump file %s, %s", dumpFile, err)
+	}
+
 	settingsFile := "testdata/settings.toml"
 
 	buffer := bytes.NewBuffer(nil)
 
-	err := Anonymise(dumpFile, settingsFile, buffer, true)
+	err = Anonymise(df, settingsFile, buffer, true)
 	if err != nil {
 		t.Errorf("Anonymise should not fail: %s", err)
 	}

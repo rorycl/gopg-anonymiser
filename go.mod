@@ -1,4 +1,4 @@
-module campbell-lange.net/gopg-anonymise
+module github.com/rorycl/gopg-anonymise
 
 go 1.17
 

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // Row holds a line (represented by columnar data) from a postgresql
@@ -180,5 +182,53 @@ func (f RowFileReplaceFilter) Filter(r Row) (Row, error) {
 
 // FilterName returns the Typer information about the RowFileReplaceFilter
 func (f RowFileReplaceFilter) FilterName() string {
+	return f.Typer
+}
+
+// RowFilterUUIDFilter replaces the column with the output of a UUID
+// generation function
+type RowFilterUUIDFilter struct {
+	Typer  string
+	Column string
+}
+
+// NewRowFilterUUIDFilter makes a new RowFilterUUIDFilter
+func NewRowFilterUUIDFilter(column string) (*RowFilterUUIDFilter, error) {
+	return &RowFilterUUIDFilter{
+		Typer:  "uuid replace",
+		Column: column,
+	}, nil
+}
+
+// Filter replaces a column with the replacement indexed by the provided
+// row number with a uuid
+func (f RowFilterUUIDFilter) Filter(r Row) (Row, error) {
+
+	// if there is no line number the previous filter may have stopped
+	// processing
+	if r.LineNo == 0 {
+		return r, nil
+	}
+
+	// find the column number to replace
+	colNo := -1
+	for c := 0; c < len(r.Columns); c++ {
+		if r.ColumnNames[c] == f.Column {
+			colNo = c
+			break
+		}
+	}
+	if colNo == -1 {
+		return r, fmt.Errorf(
+			"uuid replacer: could not find column %s in RowFilterUUIDFilter", f.Column,
+		)
+	}
+	u := uuid.New()
+	r.Columns[colNo] = u.String()
+	return r, nil
+}
+
+// FilterName returns the name of the filter type
+func (f RowFilterUUIDFilter) FilterName() string {
 	return f.Typer
 }

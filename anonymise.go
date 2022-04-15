@@ -53,6 +53,13 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 			}
 			rfs = append(rfs, filter)
 
+		case "uuid_replace":
+			filter, err := NewRowFilterUUIDFilter(f.Column)
+			if err != nil {
+				return rfs, fmt.Errorf("source error for uuid_replace : %w", err)
+			}
+			rfs = append(rfs, filter)
+
 		default:
 			return rfs, fmt.Errorf("filter type %s not known", f.Filter)
 		}

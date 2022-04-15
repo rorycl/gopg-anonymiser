@@ -77,3 +77,47 @@ func TestAnonymiseOK(t *testing.T) {
 
 	t.Log(buffer.String())
 }
+
+func TestLoadFilters(t *testing.T) {
+
+	settings := Settings{
+		Title: "test",
+		Tables: map[string]SettingTable{
+			"a": SettingTable{
+				TableName: "tableA",
+				Filters: []filters{
+					filters{
+						Column: "a",
+						Filter: "string_replace",
+						Source: "abc",
+					},
+				},
+			},
+			"b": SettingTable{
+				TableName: "tableB",
+				Filters: []filters{
+					filters{
+						Column: "b",
+						Filter: "uuid_replace",
+						Source: "",
+					},
+				},
+			},
+		},
+	}
+
+	dt := DumpTable{TableName: "tableB", ColumnNames: []string{"a", "b", "c"}}
+
+	rowFilters, err := loadFilters(settings, &dt)
+	if err != nil {
+		t.Errorf("load filter error %s", err)
+	}
+	if len(rowFilters) != 1 {
+		t.Errorf("length of rowfilters should be 1, is %d", len(rowFilters))
+	}
+	if rowFilters[0].FilterName() != "uuid replace" {
+		t.Errorf("filter name not uuid replace, got %s", rowFilters[0].FilterName())
+	}
+	t.Logf("rowFilters: %T %+v\n", rowFilters, rowFilters)
+
+}

@@ -40,9 +40,9 @@ func _filterNameTest(f RowFilterer, expected string) error {
 	return nil
 }
 
-func TestRowDeleteFilter(t *testing.T) {
+func TestDeleteFilter(t *testing.T) {
 
-	filter, _ := NewRowDeleteFilter()
+	filter, _ := NewDeleteFilter()
 
 	if err := _filterNameTest(filter, "delete"); err != nil {
 		t.Error(err)
@@ -62,19 +62,19 @@ func TestRowDeleteFilter(t *testing.T) {
 
 func TestStringReplaceFilterFail(t *testing.T) {
 
-	_, err := NewRowStringReplaceFilter(
+	_, err := NewreplaceByColumnFilter(
 		"",
 		"APassword",
 	)
 	if err == nil {
-		t.Error("NewRowStringReplaceFilter init should fail")
+		t.Error("NewreplaceByColumnFilter init should fail")
 	}
 
 }
 
 func TestStringReplaceFilter(t *testing.T) {
 
-	filter, err := NewRowStringReplaceFilter(
+	filter, err := NewreplaceByColumnFilter(
 		"password",
 		"APassword",
 	)
@@ -103,12 +103,12 @@ func TestStringReplaceFilter(t *testing.T) {
 func TestFileReplaceFilterFail(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
-	_, err := NewRowFileReplaceFilter(
+	_, err := NewfileByColumnFilter(
 		"",
 		reader,
 	)
 	if err == nil {
-		t.Error("RowFileReplaceFilter init should fail")
+		t.Error("fileByColumnFilter init should fail")
 	}
 	t.Log(err)
 }
@@ -116,12 +116,12 @@ func TestFileReplaceFilterFail(t *testing.T) {
 func TestFileReplaceFilterTabFail(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace\t2")
-	_, err := NewRowFileReplaceFilter(
+	_, err := NewfileByColumnFilter(
 		"name",
 		reader,
 	)
 	if err == nil {
-		t.Error("RowFileReplaceFilter init should fail with tab fail")
+		t.Error("fileByColumnFilter init should fail with tab fail")
 	}
 	t.Log(err)
 }
@@ -129,7 +129,7 @@ func TestFileReplaceFilterTabFail(t *testing.T) {
 func TestFileReplaceFilter(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
-	filter, err := NewRowFileReplaceFilter(
+	filter, err := NewfileByColumnFilter(
 		"name",
 		reader,
 	)
@@ -163,7 +163,7 @@ func TestFileReplaceFilter(t *testing.T) {
 
 func TestUUIDReplaceFilter(t *testing.T) {
 
-	filter, err := NewRowFilterUUIDFilter("uuid")
+	filter, err := NewUUIDFilter("uuid")
 	if err != nil {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
@@ -186,7 +186,7 @@ func TestAllBasicFilters(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
 
-	filter, err := NewRowStringReplaceFilter(
+	filter, err := NewreplaceByColumnFilter(
 		"password",
 		"APassword",
 	)
@@ -194,7 +194,7 @@ func TestAllBasicFilters(t *testing.T) {
 		t.Error("unexpected filter error")
 	}
 
-	filter2, err := NewRowFileReplaceFilter(
+	filter2, err := NewfileByColumnFilter(
 		"name",
 		reader,
 	)
@@ -202,12 +202,12 @@ func TestAllBasicFilters(t *testing.T) {
 		t.Error("unexpected filter2 error")
 	}
 
-	filter3, err := NewRowStringReplaceFilter(
+	filter3, err := NewreplaceByColumnFilter(
 		"age",
 		"17.5",
 	)
 
-	filter4, err := NewRowFilterUUIDFilter("uuid")
+	filter4, err := NewUUIDFilter("uuid")
 	if err != nil {
 		t.Error("unexpected filter4 error")
 	}
@@ -263,7 +263,7 @@ func TestAllBasicFilters(t *testing.T) {
 
 func TestMultiStringReplaceFilter(t *testing.T) {
 
-	filter, err := NewRowMultiStringReplaceFilter(
+	filter, err := NewReplaceFilter(
 		[]string{"password", "name"},
 		[]string{"new password", "Carol Carnute"},
 	)
@@ -297,7 +297,7 @@ func TestMultiFileReplaceFilterFail(t *testing.T) {
 Brady Brighton	30	caz1357
 Norris Naughton	31	dba2468`)
 
-	_, err := NewRowMultiFileReplaceFilter(
+	_, err := NewFileFilter(
 		[]string{"name", "age"},
 		reader,
 	)
@@ -313,7 +313,7 @@ func TestMultiFileReplaceFilter(t *testing.T) {
 Brady Brighton	30	caz1357
 Norris Naughton	31	dba2468`)
 
-	filter, err := NewRowMultiFileReplaceFilter(
+	filter, err := NewFileFilter(
 		[]string{"name", "age", "password"},
 		reader,
 	)

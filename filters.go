@@ -31,39 +31,40 @@ type RowFilterer interface {
 	Filter(r Row) (Row, error)
 }
 
-// RowDeleteFilter removes all lines
-type RowDeleteFilter struct {
+// DeleteFilter removes all lines
+type DeleteFilter struct {
 	Typer string
 }
 
-// NewRowDeleteFilter makes a new RowDeleteFilter
-func NewRowDeleteFilter() (*RowDeleteFilter, error) {
-	return &RowDeleteFilter{"delete"}, nil
+// NewDeleteFilter makes a new DeleteFilter
+func NewDeleteFilter() (*DeleteFilter, error) {
+	return &DeleteFilter{"delete"}, nil
 }
 
 // Filter returns an empty row
-func (f RowDeleteFilter) Filter(r Row) (Row, error) {
+func (f DeleteFilter) Filter(r Row) (Row, error) {
 	var rr Row
 	return rr, nil
 }
 
-// FilterName returns the Typer information about the RowDeleteFilter
-func (f RowDeleteFilter) FilterName() string {
+// FilterName returns the Typer information about the DeleteFilter
+func (f DeleteFilter) FilterName() string {
 	return f.Typer
 }
 
-// RowStringReplaceFilter replaces a column named "Column" with the
+// replaceByColumnFilter replaces a column named "Column" with the
 // provided replacement string
-type RowStringReplaceFilter struct {
+type replaceByColumnFilter struct {
 	Typer       string
 	Column      string
 	Replacement string
 	colNo       int
 }
 
-// NewRowStringReplaceFilter makes a new RowStringReplaceFilter
-func NewRowStringReplaceFilter(column, replacement string) (*RowStringReplaceFilter, error) {
-	r := &RowStringReplaceFilter{
+// newReplaceByColumnFilter makes a new replaceByColumnFilter, which
+// should only be called by a multicolumn replace filter
+func newReplaceByColumnFilter(column, replacement string) (*replaceByColumnFilter, error) {
+	r := &replaceByColumnFilter{
 		Typer:       "string replace",
 		Column:      column,
 		Replacement: replacement,
@@ -79,7 +80,7 @@ func NewRowStringReplaceFilter(column, replacement string) (*RowStringReplaceFil
 }
 
 // Filter replaces a column with a fixed string replacement
-func (f RowStringReplaceFilter) Filter(r Row) (Row, error) {
+func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
 	// if there is no line number the previous filter may have stopped
 	// processing
 	if r.LineNo == 0 {
@@ -96,7 +97,7 @@ func (f RowStringReplaceFilter) Filter(r Row) (Row, error) {
 		}
 		if f.colNo == -1 {
 			return r, fmt.Errorf(
-				"string replacer: could not find column %s in RowStringReplaceFilter", f.Column,
+				"string replacer: could not find column %s in replaceByColumnFilter", f.Column,
 			)
 		}
 	}
@@ -107,23 +108,24 @@ func (f RowStringReplaceFilter) Filter(r Row) (Row, error) {
 
 }
 
-// FilterName returns the Typer information about the RowStringReplaceFilter
-func (f RowStringReplaceFilter) FilterName() string {
+// FilterName returns the Typer information about the replaceByColumnFilter
+func (f replaceByColumnFilter) FilterName() string {
 	return f.Typer
 }
 
-// RowFileReplaceFilter reads the contents of file into the struct and
+// fileByColumnFilter reads the contents of file into the struct and
 // uses this to replace the contents of the designated column
-type RowFileReplaceFilter struct {
+type fileByColumnFilter struct {
 	Typer        string
 	Column       string
 	Replacements []string
 }
 
-// NewRowFileReplaceFilter makes a new RowFileReplaceFilter
-func NewRowFileReplaceFilter(column string, f io.Reader) (*RowFileReplaceFilter, error) {
+// newFileByColumnFilter makes a new fileByColumnFilter, which should
+// only be called by a multi-columnar FileFilter
+func newFileByColumnFilter(column string, f io.Reader) (*fileByColumnFilter, error) {
 
-	r := &RowFileReplaceFilter{
+	r := &fileByColumnFilter{
 		Typer:  "file replace",
 		Column: column,
 	}
@@ -151,7 +153,7 @@ func NewRowFileReplaceFilter(column string, f io.Reader) (*RowFileReplaceFilter,
 // Filter replaces a column with the replacement indexed by the provided
 // row number from the list of replacements. If the list of replacements
 // has been exhausted, start from the top again
-func (f RowFileReplaceFilter) Filter(r Row) (Row, error) {
+func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
@@ -169,7 +171,7 @@ func (f RowFileReplaceFilter) Filter(r Row) (Row, error) {
 	}
 	if colNo == -1 {
 		return r, fmt.Errorf(
-			"file replacer: could not find column %s in RowFileReplaceFilter", f.Column,
+			"file replacer: could not find column %s in fileByColumnFilter", f.Column,
 		)
 	}
 
@@ -181,21 +183,21 @@ func (f RowFileReplaceFilter) Filter(r Row) (Row, error) {
 
 }
 
-// FilterName returns the Typer information about the RowFileReplaceFilter
-func (f RowFileReplaceFilter) FilterName() string {
+// FilterName returns the Typer information about the fileByColumnFilter
+func (f fileByColumnFilter) FilterName() string {
 	return f.Typer
 }
 
-// RowFilterUUIDFilter replaces the column with the output of a UUID
+// UUIDFilter replaces the column with the output of a UUID
 // generation function
-type RowFilterUUIDFilter struct {
+type UUIDFilter struct {
 	Typer  string
 	Column string
 }
 
-// NewRowFilterUUIDFilter makes a new RowFilterUUIDFilter
-func NewRowFilterUUIDFilter(column string) (*RowFilterUUIDFilter, error) {
-	return &RowFilterUUIDFilter{
+// NewUUIDFilter makes a new UUIDFilter
+func NewUUIDFilter(column string) (*UUIDFilter, error) {
+	return &UUIDFilter{
 		Typer:  "uuid replace",
 		Column: column,
 	}, nil
@@ -203,7 +205,7 @@ func NewRowFilterUUIDFilter(column string) (*RowFilterUUIDFilter, error) {
 
 // Filter replaces a column with the replacement indexed by the provided
 // row number with a uuid
-func (f RowFilterUUIDFilter) Filter(r Row) (Row, error) {
+func (f UUIDFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
@@ -221,7 +223,7 @@ func (f RowFilterUUIDFilter) Filter(r Row) (Row, error) {
 	}
 	if colNo == -1 {
 		return r, fmt.Errorf(
-			"uuid replacer: could not find column %s in RowFilterUUIDFilter", f.Column,
+			"uuid replacer: could not find column %s in UUIDFilter", f.Column,
 		)
 	}
 	u := uuid.New()
@@ -230,27 +232,26 @@ func (f RowFilterUUIDFilter) Filter(r Row) (Row, error) {
 }
 
 // FilterName returns the name of the filter type
-func (f RowFilterUUIDFilter) FilterName() string {
+func (f UUIDFilter) FilterName() string {
 	return f.Typer
 }
 
-// RowMultiStringReplaceFilter allows multiple columns to be replaced by
-// fixed strings, described by a slice of replacements.
-// RowMultiStringReplaceFilter uses RowStringReplaceFilter to do its
-// work
-type RowMultiStringReplaceFilter struct {
+// ReplaceFilter allows multiple columns to be replaced by fixed
+// strings, described by a slice of replacements. ReplaceFilter uses
+// replaceByColumnFilter to do its work
+type ReplaceFilter struct {
 	Typer        string
 	Columns      []string
 	Replacements []string
 	filters      []RowFilterer
 }
 
-// NewRowMultiStringReplaceFilter creates a new
-// RowMultiStringReplaceFilter, registering one or more
-// RowStringReplaceFilter filters to do the work of replacing each
+// NewReplaceFilter creates a new
+// ReplaceFilter, registering one or more
+// replaceByColumnFilter filters to do the work of replacing each
 // column.
-func NewRowMultiStringReplaceFilter(columns, replacements []string) (*RowMultiStringReplaceFilter, error) {
-	r := &RowMultiStringReplaceFilter{
+func NewReplaceFilter(columns, replacements []string) (*ReplaceFilter, error) {
+	r := &ReplaceFilter{
 		Typer:        "multi string replace",
 		Columns:      columns,
 		Replacements: replacements,
@@ -263,7 +264,7 @@ func NewRowMultiStringReplaceFilter(columns, replacements []string) (*RowMultiSt
 		return r, errors.New("multi string replace: number of columns and replacements must be the same")
 	}
 	for i, c := range r.Columns {
-		f, err := NewRowStringReplaceFilter(c, r.Replacements[i])
+		f, err := newReplaceByColumnFilter(c, r.Replacements[i])
 		if err != nil {
 			return r, fmt.Errorf("multi string init error %w", err)
 		}
@@ -273,8 +274,8 @@ func NewRowMultiStringReplaceFilter(columns, replacements []string) (*RowMultiSt
 }
 
 // Filter replaces column values with a fixed string replacement using
-// one or more RowStringReplaceFilter filters
-func (f RowMultiStringReplaceFilter) Filter(r Row) (Row, error) {
+// one or more replaceByColumnFilter filters
+func (f ReplaceFilter) Filter(r Row) (Row, error) {
 	// if there is no line number the previous filter may have stopped
 	// processing
 	if r.LineNo == 0 {
@@ -290,24 +291,24 @@ func (f RowMultiStringReplaceFilter) Filter(r Row) (Row, error) {
 }
 
 // FilterName returns the name of the filter type
-func (f RowMultiStringReplaceFilter) FilterName() string {
+func (f ReplaceFilter) FilterName() string {
 	return f.Typer
 }
 
-// RowMultiFileReplaceFilter replaces a number of columns in a table
-// with replacements from a tab delmited file (typically a postgres dump
-// file). The actual work of this filter is performed by a set of
-// RowFileReplaceFilter filter
-type RowMultiFileReplaceFilter struct {
+// FileFilter replaces a number of columns in a table with replacements
+// from a tab delmited file (typically a postgres dump file). The actual
+// work of this filter is performed by a set of fileByColumnFilter
+// filter
+type FileFilter struct {
 	Typer        string
 	Columns      []string
 	Replacements []bytes.Buffer
 	filters      []RowFilterer
 }
 
-// NewRowMultiFileReplaceFilter creates a new RowMultiFileReplaceFilter
-func NewRowMultiFileReplaceFilter(columns []string, f io.Reader) (*RowMultiFileReplaceFilter, error) {
-	r := &RowMultiFileReplaceFilter{
+// NewFileFilter creates a new FileFilter
+func NewFileFilter(columns []string, f io.Reader) (*FileFilter, error) {
+	r := &FileFilter{
 		Typer:   "multi file replace",
 		Columns: columns,
 		filters: []RowFilterer{},
@@ -336,7 +337,7 @@ func NewRowMultiFileReplaceFilter(columns []string, f io.Reader) (*RowMultiFileR
 	}
 	for i, c := range r.Columns {
 		replReader := bytes.NewReader(r.Replacements[i].Bytes())
-		f, err := NewRowFileReplaceFilter(c, replReader)
+		f, err := newFileByColumnFilter(c, replReader)
 		if err != nil {
 			return r, fmt.Errorf("multi file init error %w", err)
 		}
@@ -346,8 +347,8 @@ func NewRowMultiFileReplaceFilter(columns []string, f io.Reader) (*RowMultiFileR
 }
 
 // Filter replaces column values with values read from one or more
-// buffers providing data to one or more RowFileReplaceFilter filters
-func (f RowMultiFileReplaceFilter) Filter(r Row) (Row, error) {
+// buffers providing data to one or more fileByColumnFilter filters
+func (f FileFilter) Filter(r Row) (Row, error) {
 	// if there is no line number the previous filter may have stopped
 	// processing
 	if r.LineNo == 0 {
@@ -363,6 +364,6 @@ func (f RowMultiFileReplaceFilter) Filter(r Row) (Row, error) {
 }
 
 // FilterName returns the name of the filter type
-func (f RowMultiFileReplaceFilter) FilterName() string {
+func (f FileFilter) FilterName() string {
 	return f.Typer
 }

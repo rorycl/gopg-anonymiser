@@ -8,15 +8,12 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-var usage = `:
-a simple postgresql dump file anonymiser.
+var usage = `: a simple postgresql dump file anonymiser.
 
 Anonymise a postgresql dump file using a toml settings file setting out
 the deletion, string_replace and file_replace filters to use.
 
-gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test] [file or stdin]
-
-`
+gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test]`
 
 // Options set the programme flag options
 type Options struct {
@@ -28,7 +25,9 @@ type Options struct {
 	} `positional-args:"yes"`
 }
 
-func main() {
+// parseFlags parses the command line options, taken out of main to
+// allow testing
+func parseFlags() (input io.Reader, settings string, output io.Writer, test bool, err error) {
 
 	var options Options
 	var parser = flags.NewParser(&options, flags.Default)
@@ -38,40 +37,49 @@ func main() {
 		os.Exit(1)
 	}
 
-	var err error
+	test = options.Test
+	settings = options.Settings
+
 	// open stdin or file for reading
-	var input io.Reader
 	if options.Args.Input == "" {
 		input = os.Stdin
 	} else {
 		filer, err := os.Open(options.Args.Input)
 		if err != nil {
-			fmt.Printf("Could not open file %s for reading, %s", options.Args.Input, err)
-			os.Exit(1)
+			return input, settings, output, test,
+				fmt.Errorf("Could not open file %s for reading, %s", options.Args.Input, err)
 		}
-		defer filer.Close()
 		input = filer
 	}
 
 	// open stdout or file for writing
-	var output io.Writer
 	if options.Output == "" {
 		output = os.Stdout
 	} else {
 		filer, err := os.Create(options.Output)
 		if err != nil {
-			fmt.Printf("Could not create file %s, %s", options.Output, err)
-			os.Exit(1)
+			return input, settings, output, test,
+				fmt.Errorf("Could not create file %s, %s", options.Output, err)
 		}
-		defer filer.Close()
 		output = filer
 	}
 
+	return input, settings, output, test, nil
+}
+
+func main() {
+
+	// parse flags
+	dumpFile, settings, output, changedOnly, err := parseFlags()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	// run anonymiser
-	err = Anonymise(input, options.Settings, output, options.Test)
+	err = Anonymise(dumpFile, settings, output, changedOnly)
 	if err != nil {
 		fmt.Printf("Anonymisation error: %s\n", err)
 		os.Exit(1)
 	}
-
 }

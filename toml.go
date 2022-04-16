@@ -19,12 +19,13 @@ type SettingTable struct {
 
 // Filters structure
 type filters struct {
-	Column string
-	Filter string
-	Source string
+	Filter       string
+	Columns      []string
+	Replacements []string
+	Source       string
 }
 
-// LoadToml loads a toml file and returns a Tables structure
+// LoadToml loads a toml file and returns a Settings structure
 func LoadToml(file string) (Settings, error) {
 
 	var tables Settings

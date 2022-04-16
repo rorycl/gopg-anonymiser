@@ -33,63 +33,43 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 
 		switch f.Filter {
 		case "delete":
-			filter, _ := NewRowDeleteFilter()
+			filter, _ := NewDeleteFilter()
 			rfs = append(rfs, filter)
 
-		case "string_replace":
-			filter, err := NewRowStringReplaceFilter(f.Column, f.Source)
+		case "uuid":
+			filter, err := NewUUIDFilter(f.Columns)
+			// fixme
 			if err != nil {
-				return rfs, fmt.Errorf("load error for string_replace : %w", err)
-			}
-			rfs = append(rfs, filter)
-
-		case "file_replace":
-			filer, err := os.Open(f.Source)
-			if err != nil {
-				return rfs, fmt.Errorf("source error for file_replace : %w", err)
-			}
-			filter, err := NewRowFileReplaceFilter(f.Column, filer)
-			if err != nil {
-				return rfs, fmt.Errorf("load error for file_replace : %w", err)
+				return rfs, fmt.Errorf("uuid filter error: %w", err)
 			}
 			rfs = append(rfs, filter)
 
-		case "uuid_replace":
-			filter, err := NewRowFilterUUIDFilter(f.Column)
-			if err != nil {
-				return rfs, fmt.Errorf("source error for uuid_replace : %w", err)
+		case "string replace":
+			if len(f.Columns) < 1 {
+				return rfs, errors.New("string replace filter: must provide at lease one column")
 			}
-			rfs = append(rfs, filter)
-
-		case "multi_string_replace":
-			columns := strings.Split(f.Column, "\t")
-			replacements := strings.Split(f.Source, "\t")
-			if len(columns) < 1 {
-				return rfs, errors.New("multi_string_replace: must provide at lease one column")
+			if len(f.Columns) != len(f.Replacements) {
+				return rfs, errors.New("string replace filter: column length != replacement length")
 			}
-			if len(columns) != len(replacements) {
-				return rfs, errors.New("multi_string_replace: columns != replacements")
-			}
-			filter, err := NewRowMultiStringReplaceFilter(
-				columns,
-				replacements,
+			filter, err := NewReplaceFilter(
+				f.Columns,
+				f.Replacements,
 			)
 			if err != nil {
-				return rfs, fmt.Errorf("source error for multi_string_replace : %w", err)
+				return rfs, fmt.Errorf("source error for string replace: %w", err)
 			}
 			rfs = append(rfs, filter)
 
-		case "multi_file_replace":
-			columns := strings.Split(f.Column, "\t")
-			if len(columns) < 1 {
-				return rfs, errors.New("multi_file_replace: must provide at lease one column")
+		case "file replace":
+			if len(f.Columns) < 1 {
+				return rfs, errors.New("file replace: must provide at lease one column")
 			}
 			filer, err := os.Open(f.Source)
 			if err != nil {
-				return rfs, fmt.Errorf("source error for multi_file_replace : %w", err)
+				return rfs, fmt.Errorf("file replace filter error: %w", err)
 			}
-			filter, err := NewRowMultiFileReplaceFilter(
-				columns,
+			filter, err := NewFileFilter(
+				f.Columns,
 				filer,
 			)
 			if err != nil {

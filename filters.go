@@ -191,16 +191,23 @@ func (f fileByColumnFilter) FilterName() string {
 // UUIDFilter replaces the column with the output of a UUID
 // generation function
 type UUIDFilter struct {
-	Typer  string
-	Column string
+	Typer   string
+	Columns []string
 }
 
 // NewUUIDFilter makes a new UUIDFilter
-func NewUUIDFilter(column string) (*UUIDFilter, error) {
-	return &UUIDFilter{
-		Typer:  "uuid replace",
-		Column: column,
-	}, nil
+func NewUUIDFilter(columns []string) (*UUIDFilter, error) {
+
+	f := UUIDFilter{
+		Typer:   "uuid replace",
+		Columns: columns,
+	}
+
+	if len(columns) == 0 {
+		return &f, errors.New("uuid replace: at least one column must be specified")
+	}
+
+	return &f, nil
 }
 
 // Filter replaces a column with the replacement indexed by the provided
@@ -213,21 +220,22 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// find the column number to replace
-	colNo := -1
-	for c := 0; c < len(r.Columns); c++ {
-		if r.ColumnNames[c] == f.Column {
-			colNo = c
-			break
+	// find the column number to replace between the row r and filter f
+	changed := 0
+	for i, rc := range r.ColumnNames {
+		for _, cn := range f.Columns {
+			if rc == cn {
+				changed++
+				r.Columns[i] = uuid.New().String()
+				break
+			}
 		}
 	}
-	if colNo == -1 {
-		return r, fmt.Errorf(
-			"uuid replacer: could not find column %s in UUIDFilter", f.Column,
-		)
+
+	if changed != len(f.Columns) {
+		return r, errors.New("uuid replacer: could not find all column in UUIDFilter")
 	}
-	u := uuid.New()
-	r.Columns[colNo] = u.String()
+
 	return r, nil
 }
 

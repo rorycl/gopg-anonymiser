@@ -108,9 +108,9 @@ func TestLoadFilters(t *testing.T) {
 				TableName: "tableA",
 				Filters: []filters{
 					filters{
-						Column: "a",
-						Filter: "string_replace",
-						Source: "abc",
+						Filter:       "string replace",
+						Columns:      []string{"a"},
+						Replacements: []string{"abc"},
 					},
 				},
 			},
@@ -118,9 +118,8 @@ func TestLoadFilters(t *testing.T) {
 				TableName: "tableB",
 				Filters: []filters{
 					filters{
-						Column: "b",
-						Filter: "uuid_replace",
-						Source: "",
+						Filter:  "uuid",
+						Columns: []string{"b"},
 					},
 				},
 			},

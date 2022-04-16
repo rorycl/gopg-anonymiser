@@ -163,7 +163,7 @@ func TestFileReplaceFilter(t *testing.T) {
 
 func TestUUIDReplaceFilter(t *testing.T) {
 
-	filter, err := NewUUIDFilter("uuid")
+	filter, err := NewUUIDFilter([]string{"uuid"})
 	if err != nil {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
@@ -207,7 +207,7 @@ func TestAllBasicFilters(t *testing.T) {
 		"17.5",
 	)
 
-	filter4, err := NewUUIDFilter("uuid")
+	filter4, err := NewUUIDFilter([]string{"uuid"})
 	if err != nil {
 		t.Error("unexpected filter4 error")
 	}

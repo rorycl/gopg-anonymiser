@@ -64,19 +64,19 @@ type replaceByColumnFilter struct {
 // newReplaceByColumnFilter makes a new replaceByColumnFilter, which
 // should only be called by a multicolumn replace filter
 func newReplaceByColumnFilter(column, replacement string) (*replaceByColumnFilter, error) {
-	r := &replaceByColumnFilter{
+	f := &replaceByColumnFilter{
 		Typer:       "string replace",
 		Column:      column,
 		Replacement: replacement,
 		colNo:       -1,
 	}
 	if column == "" {
-		return r, errors.New("string replacer: column name cannot be empty")
+		return f, errors.New("string replacer: column name cannot be empty")
 	}
 	if replacement == "" {
-		return r, errors.New("string replacer: replacement string cannot be empty")
+		return f, errors.New("string replacer: replacement string cannot be empty")
 	}
-	return r, nil
+	return f, nil
 }
 
 // Filter replaces a column with a fixed string replacement
@@ -123,31 +123,31 @@ type fileByColumnFilter struct {
 
 // newFileByColumnFilter makes a new fileByColumnFilter, which should
 // only be called by a multi-columnar FileFilter
-func newFileByColumnFilter(column string, f io.Reader) (*fileByColumnFilter, error) {
+func newFileByColumnFilter(column string, fh io.Reader) (*fileByColumnFilter, error) {
 
-	r := &fileByColumnFilter{
+	f := &fileByColumnFilter{
 		Typer:  "file replace",
 		Column: column,
 	}
 	if column == "" {
-		return r, errors.New("file replacer: column name cannot be empty")
+		return f, errors.New("file replacer: column name cannot be empty")
 	}
 
 	// append the replacement lines to the replacement slice
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(fh)
 	for scanner.Scan() {
 		t := scanner.Text()
 		if strings.Contains(t, "\t") {
-			return r, errors.New("file replacer: source contains a tab")
+			return f, errors.New("file replacer: source contains a tab")
 		}
-		r.Replacements = append(r.Replacements, t)
+		f.Replacements = append(f.Replacements, t)
 	}
 	// return an error if the scanner failed
 	if err := scanner.Err(); err != nil {
-		return r, err
+		return f, err
 	}
 
-	return r, nil
+	return f, nil
 }
 
 // Filter replaces a column with the replacement indexed by the provided
@@ -246,31 +246,30 @@ type ReplaceFilter struct {
 	filters      []RowFilterer
 }
 
-// NewReplaceFilter creates a new
-// ReplaceFilter, registering one or more
+// NewReplaceFilter creates a new ReplaceFilter, registering one or more
 // replaceByColumnFilter filters to do the work of replacing each
 // column.
 func NewReplaceFilter(columns, replacements []string) (*ReplaceFilter, error) {
-	r := &ReplaceFilter{
+	f := &ReplaceFilter{
 		Typer:        "multi string replace",
 		Columns:      columns,
 		Replacements: replacements,
 		filters:      []RowFilterer{},
 	}
 	if len(columns) == 0 {
-		return r, errors.New("multi string replace: at least one column must be specified")
+		return f, errors.New("multi string replace: at least one column must be specified")
 	}
 	if len(columns) != len(replacements) {
-		return r, errors.New("multi string replace: number of columns and replacements must be the same")
+		return f, errors.New("multi string replace: number of columns and replacements must be the same")
 	}
-	for i, c := range r.Columns {
-		f, err := newReplaceByColumnFilter(c, r.Replacements[i])
+	for i, c := range f.Columns {
+		cf, err := newReplaceByColumnFilter(c, f.Replacements[i])
 		if err != nil {
-			return r, fmt.Errorf("multi string init error %w", err)
+			return f, fmt.Errorf("multi string init error %w", err)
 		}
-		r.filters = append(r.filters, f)
+		f.filters = append(f.filters, cf)
 	}
-	return r, nil
+	return f, nil
 }
 
 // Filter replaces column values with a fixed string replacement using
@@ -307,43 +306,43 @@ type FileFilter struct {
 }
 
 // NewFileFilter creates a new FileFilter
-func NewFileFilter(columns []string, f io.Reader) (*FileFilter, error) {
-	r := &FileFilter{
+func NewFileFilter(columns []string, fh io.Reader) (*FileFilter, error) {
+	f := &FileFilter{
 		Typer:   "multi file replace",
 		Columns: columns,
 		filters: []RowFilterer{},
 	}
 	if len(columns) == 0 {
-		return r, errors.New("multi file replace: at least one column must be specified")
+		return f, errors.New("multi file replace: at least one column must be specified")
 	}
 
-	r.Replacements = make([]bytes.Buffer, len(r.Columns))
+	f.Replacements = make([]bytes.Buffer, len(f.Columns))
 
 	// scan the provided reader resource into columns by splitting on
 	// tab, appending each to the numbered buffer, erroring if the
 	// number of columns made by splitting is more than Columns
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(fh)
 	for scanner.Scan() {
 		cols := strings.Split(scanner.Text(), "\t")
-		if len(cols) > len(r.Columns) {
-			return r, fmt.Errorf(
+		if len(cols) > len(f.Columns) {
+			return f, fmt.Errorf(
 				"multi file replacement error: file column number %d greater than requested %d",
-				len(cols), len(r.Columns),
+				len(cols), len(f.Columns),
 			)
 		}
 		for i, c := range cols {
-			r.Replacements[i].WriteString(c + "\n")
+			f.Replacements[i].WriteString(c + "\n")
 		}
 	}
-	for i, c := range r.Columns {
-		replReader := bytes.NewReader(r.Replacements[i].Bytes())
-		f, err := newFileByColumnFilter(c, replReader)
+	for i, c := range f.Columns {
+		replReader := bytes.NewReader(f.Replacements[i].Bytes())
+		cf, err := newFileByColumnFilter(c, replReader)
 		if err != nil {
-			return r, fmt.Errorf("multi file init error %w", err)
+			return f, fmt.Errorf("multi file init error %w", err)
 		}
-		r.filters = append(r.filters, f)
+		f.filters = append(f.filters, cf)
 	}
-	return r, nil
+	return f, nil
 }
 
 // Filter replaces column values with values read from one or more

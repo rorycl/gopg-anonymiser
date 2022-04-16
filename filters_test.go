@@ -62,19 +62,19 @@ func TestDeleteFilter(t *testing.T) {
 
 func TestStringReplaceFilterFail(t *testing.T) {
 
-	_, err := NewreplaceByColumnFilter(
+	_, err := newReplaceByColumnFilter(
 		"",
 		"APassword",
 	)
 	if err == nil {
-		t.Error("NewreplaceByColumnFilter init should fail")
+		t.Error("newReplaceByColumnFilter init should fail")
 	}
 
 }
 
 func TestStringReplaceFilter(t *testing.T) {
 
-	filter, err := NewreplaceByColumnFilter(
+	filter, err := newReplaceByColumnFilter(
 		"password",
 		"APassword",
 	)
@@ -103,7 +103,7 @@ func TestStringReplaceFilter(t *testing.T) {
 func TestFileReplaceFilterFail(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
-	_, err := NewfileByColumnFilter(
+	_, err := newFileByColumnFilter(
 		"",
 		reader,
 	)
@@ -116,7 +116,7 @@ func TestFileReplaceFilterFail(t *testing.T) {
 func TestFileReplaceFilterTabFail(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace\t2")
-	_, err := NewfileByColumnFilter(
+	_, err := newFileByColumnFilter(
 		"name",
 		reader,
 	)
@@ -129,7 +129,7 @@ func TestFileReplaceFilterTabFail(t *testing.T) {
 func TestFileReplaceFilter(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
-	filter, err := NewfileByColumnFilter(
+	filter, err := newFileByColumnFilter(
 		"name",
 		reader,
 	)
@@ -186,7 +186,7 @@ func TestAllBasicFilters(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
 
-	filter, err := NewreplaceByColumnFilter(
+	filter, err := newReplaceByColumnFilter(
 		"password",
 		"APassword",
 	)
@@ -194,7 +194,7 @@ func TestAllBasicFilters(t *testing.T) {
 		t.Error("unexpected filter error")
 	}
 
-	filter2, err := NewfileByColumnFilter(
+	filter2, err := newFileByColumnFilter(
 		"name",
 		reader,
 	)
@@ -202,7 +202,7 @@ func TestAllBasicFilters(t *testing.T) {
 		t.Error("unexpected filter2 error")
 	}
 
-	filter3, err := NewreplaceByColumnFilter(
+	filter3, err := newReplaceByColumnFilter(
 		"age",
 		"17.5",
 	)

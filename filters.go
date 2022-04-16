@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -259,7 +260,7 @@ func NewRowMultiStringReplaceFilter(columns, replacements []string) (*RowMultiSt
 		return r, errors.New("multi string replace: at least one column must be specified")
 	}
 	if len(columns) != len(replacements) {
-		return r, errors.New("multie string replace: number of columns and replacements must be the same")
+		return r, errors.New("multi string replace: number of columns and replacements must be the same")
 	}
 	for i, c := range r.Columns {
 		f, err := NewRowStringReplaceFilter(c, r.Replacements[i])
@@ -279,18 +280,89 @@ func (f RowMultiStringReplaceFilter) Filter(r Row) (Row, error) {
 	if r.LineNo == 0 {
 		return r, nil
 	}
-
 	for _, f := range f.filters {
 		r, err := f.Filter(r)
 		if err != nil {
 			return r, fmt.Errorf("multi string filter error: %w", err)
 		}
 	}
-
 	return r, nil
 }
 
 // FilterName returns the name of the filter type
 func (f RowMultiStringReplaceFilter) FilterName() string {
+	return f.Typer
+}
+
+// RowMultiFileReplaceFilter replaces a number of columns in a table
+// with replacements from a tab delmited file (typically a postgres dump
+// file). The actual work of this filter is performed by a set of
+// RowFileReplaceFilter filter
+type RowMultiFileReplaceFilter struct {
+	Typer        string
+	Columns      []string
+	Replacements []bytes.Buffer
+	filters      []RowFilterer
+}
+
+// NewRowMultiFileReplaceFilter creates a new RowMultiFileReplaceFilter
+func NewRowMultiFileReplaceFilter(columns []string, f io.Reader) (*RowMultiFileReplaceFilter, error) {
+	r := &RowMultiFileReplaceFilter{
+		Typer:   "multi file replace",
+		Columns: columns,
+		filters: []RowFilterer{},
+	}
+	if len(columns) == 0 {
+		return r, errors.New("multi file replace: at least one column must be specified")
+	}
+
+	r.Replacements = make([]bytes.Buffer, len(r.Columns))
+
+	// scan the provided reader resource into columns by splitting on
+	// tab, appending each to the numbered buffer, erroring if the
+	// number of columns made by splitting is more than Columns
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		cols := strings.Split(scanner.Text(), "\t")
+		if len(cols) > len(r.Columns) {
+			return r, fmt.Errorf(
+				"multi file replacement error: file column number %d greater than requested %d",
+				len(cols), len(r.Columns),
+			)
+		}
+		for i, c := range cols {
+			r.Replacements[i].WriteString(c + "\n")
+		}
+	}
+	for i, c := range r.Columns {
+		replReader := bytes.NewReader(r.Replacements[i].Bytes())
+		f, err := NewRowFileReplaceFilter(c, replReader)
+		if err != nil {
+			return r, fmt.Errorf("multi file init error %w", err)
+		}
+		r.filters = append(r.filters, f)
+	}
+	return r, nil
+}
+
+// Filter replaces column values with values read from one or more
+// buffers providing data to one or more RowFileReplaceFilter filters
+func (f RowMultiFileReplaceFilter) Filter(r Row) (Row, error) {
+	// if there is no line number the previous filter may have stopped
+	// processing
+	if r.LineNo == 0 {
+		return r, nil
+	}
+	for _, f := range f.filters {
+		r, err := f.Filter(r)
+		if err != nil {
+			return r, fmt.Errorf("multi string file error: %w", err)
+		}
+	}
+	return r, nil
+}
+
+// FilterName returns the name of the filter type
+func (f RowMultiFileReplaceFilter) FilterName() string {
 	return f.Typer
 }

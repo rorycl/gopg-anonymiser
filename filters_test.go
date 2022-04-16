@@ -287,3 +287,54 @@ func TestMultiStringReplaceFilter(t *testing.T) {
 		t.Logf("%+v\n", ro.Columns)
 	}
 }
+
+// TestMultiFileReplaceFilterFail has fewer columns than the reader
+func TestMultiFileReplaceFilterFail(t *testing.T) {
+
+	reader := strings.NewReader(`John James	29	xyz1356
+Brady Brighton	30	caz1357
+Norris Naughton	31	dba2468`)
+
+	_, err := NewRowMultiFileReplaceFilter(
+		[]string{"name", "age"},
+		reader,
+	)
+	if err == nil {
+		t.Errorf("TestMultiFileReplaceFilter should fail with too many file columns")
+	}
+	t.Log(err)
+}
+
+func TestMultiFileReplaceFilter(t *testing.T) {
+
+	reader := strings.NewReader(`John James	29	xyz1356
+Brady Brighton	30	caz1357
+Norris Naughton	31	dba2468`)
+
+	filter, err := NewRowMultiFileReplaceFilter(
+		[]string{"name", "age", "password"},
+		reader,
+	)
+	if err != nil {
+		t.Errorf("TestMultiFileReplaceFilter failed init: %s", err)
+	}
+
+	expected := [][]string{
+		[]string{"John James", "29", "xyz1356", "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
+		[]string{"Brady Brighton", "30", "caz1357", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
+		[]string{"Norris Naughton", "31", "dba2468", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
+	}
+
+	for i, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Multifile error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		for ii, c := range ro.Columns {
+			if c != expected[i][ii] {
+				t.Errorf("replacement expected %s, got %s", expected[i][ii], c)
+			}
+		}
+		t.Log(ro.Columns)
+	}
+}

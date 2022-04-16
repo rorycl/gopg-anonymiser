@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -57,6 +58,42 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 			filter, err := NewRowFilterUUIDFilter(f.Column)
 			if err != nil {
 				return rfs, fmt.Errorf("source error for uuid_replace : %w", err)
+			}
+			rfs = append(rfs, filter)
+
+		case "multi_string_replace":
+			columns := strings.Split(f.Column, "\t")
+			replacements := strings.Split(f.Source, "\t")
+			if len(columns) < 1 {
+				return rfs, errors.New("multi_string_replace: must provide at lease one column")
+			}
+			if len(columns) != len(replacements) {
+				return rfs, errors.New("multi_string_replace: columns != replacements")
+			}
+			filter, err := NewRowMultiStringReplaceFilter(
+				columns,
+				replacements,
+			)
+			if err != nil {
+				return rfs, fmt.Errorf("source error for multi_string_replace : %w", err)
+			}
+			rfs = append(rfs, filter)
+
+		case "multi_file_replace":
+			columns := strings.Split(f.Column, "\t")
+			if len(columns) < 1 {
+				return rfs, errors.New("multi_file_replace: must provide at lease one column")
+			}
+			filer, err := os.Open(f.Source)
+			if err != nil {
+				return rfs, fmt.Errorf("source error for multi_file_replace : %w", err)
+			}
+			filter, err := NewRowMultiFileReplaceFilter(
+				columns,
+				filer,
+			)
+			if err != nil {
+				return rfs, fmt.Errorf("source error for multi_string_replace : %w", err)
 			}
 			rfs = append(rfs, filter)
 

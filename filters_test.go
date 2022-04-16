@@ -78,13 +78,12 @@ func TestStringReplaceFilter(t *testing.T) {
 		"password",
 		"APassword",
 	)
+	if err != nil {
+		t.Error("TestStringReplaceFilter failed init")
+	}
 
 	if err := _filterNameTest(filter, "string replace"); err != nil {
 		t.Error(err)
-	}
-
-	if err != nil {
-		t.Error("TestStringReplaceFilter failed init")
 	}
 
 	for _, r := range rows {
@@ -134,13 +133,12 @@ func TestFileReplaceFilter(t *testing.T) {
 		"name",
 		reader,
 	)
+	if err != nil {
+		t.Error("TestFileReplaceFilter failed init")
+	}
 
 	if err := _filterNameTest(filter, "file replace"); err != nil {
 		t.Error(err)
-	}
-
-	if err != nil {
-		t.Error("TestFileReplaceFilter failed init")
 	}
 
 	replacements := map[int]string{
@@ -183,8 +181,8 @@ func TestUUIDReplaceFilter(t *testing.T) {
 
 }
 
-// TestAllFilters chains all filters other than the delete filter
-func TestAllFilters(t *testing.T) {
+// TestAllBasicFilters chains all filters other than the delete filter
+func TestAllBasicFilters(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
 
@@ -260,5 +258,32 @@ func TestAllFilters(t *testing.T) {
 			}
 		}
 		t.Logf("%+v\n", ro)
+	}
+}
+
+func TestMultiStringReplaceFilter(t *testing.T) {
+
+	filter, err := NewRowMultiStringReplaceFilter(
+		[]string{"password", "name"},
+		[]string{"new password", "Carol Carnute"},
+	)
+	if err != nil {
+		t.Error("TestMultiStringReplaceFilter failed init")
+	}
+
+	if err := _filterNameTest(filter, "multi string replace"); err != nil {
+		t.Error(err)
+	}
+
+	for _, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+
+		if !(ro.Columns[0] == "Carol Carnute" && ro.Columns[2] == "new password") {
+			t.Errorf("replacements did not work : %s %s", ro.Columns[0], ro.Columns[2])
+		}
+		t.Logf("%+v\n", ro.Columns)
 	}
 }

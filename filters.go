@@ -232,3 +232,65 @@ func (f RowFilterUUIDFilter) Filter(r Row) (Row, error) {
 func (f RowFilterUUIDFilter) FilterName() string {
 	return f.Typer
 }
+
+// RowMultiStringReplaceFilter allows multiple columns to be replaced by
+// fixed strings, described by a slice of replacements.
+// RowMultiStringReplaceFilter uses RowStringReplaceFilter to do its
+// work
+type RowMultiStringReplaceFilter struct {
+	Typer        string
+	Columns      []string
+	Replacements []string
+	filters      []RowFilterer
+}
+
+// NewRowMultiStringReplaceFilter creates a new
+// RowMultiStringReplaceFilter, registering one or more
+// RowStringReplaceFilter filters to do the work of replacing each
+// column.
+func NewRowMultiStringReplaceFilter(columns, replacements []string) (*RowMultiStringReplaceFilter, error) {
+	r := &RowMultiStringReplaceFilter{
+		Typer:        "multi string replace",
+		Columns:      columns,
+		Replacements: replacements,
+		filters:      []RowFilterer{},
+	}
+	if len(columns) == 0 {
+		return r, errors.New("multi string replace: at least one column must be specified")
+	}
+	if len(columns) != len(replacements) {
+		return r, errors.New("multie string replace: number of columns and replacements must be the same")
+	}
+	for i, c := range r.Columns {
+		f, err := NewRowStringReplaceFilter(c, r.Replacements[i])
+		if err != nil {
+			return r, fmt.Errorf("multi string init error %w", err)
+		}
+		r.filters = append(r.filters, f)
+	}
+	return r, nil
+}
+
+// Filter replaces column values with a fixed string replacement using
+// one or more RowStringReplaceFilter filters
+func (f RowMultiStringReplaceFilter) Filter(r Row) (Row, error) {
+	// if there is no line number the previous filter may have stopped
+	// processing
+	if r.LineNo == 0 {
+		return r, nil
+	}
+
+	for _, f := range f.filters {
+		r, err := f.Filter(r)
+		if err != nil {
+			return r, fmt.Errorf("multi string filter error: %w", err)
+		}
+	}
+
+	return r, nil
+}
+
+// FilterName returns the name of the filter type
+func (f RowMultiStringReplaceFilter) FilterName() string {
+	return f.Typer
+}

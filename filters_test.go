@@ -275,7 +275,9 @@ func TestMultiStringReplaceFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -325,7 +327,9 @@ Norris Naughton	31	dba2468`)
 		[]string{"Norris Naughton", "31", "dba2468", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Multifile error on row linenumber %d: %v\n", r.LineNo, err)

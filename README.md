@@ -1,5 +1,7 @@
 # gopg-anonymiser
 
+_Note that this project is still in early development_ RCL April 2022
+
 A simple tool for anonymising postgresql dump files from the Postgresql
 `pg_dump` command, which uses row delete and column replacement filters
 set out in a settings toml file.
@@ -27,57 +29,70 @@ Use the `-t` (testmode) flag to only show altered rows.
 
 ## Running the programme
 
-    Usage:
-      gopg-anonymise :
+	Usage:
+	  gopg-anonymise : a simple postgresql dump file anonymiser.
 
-    a simple postgresql dump file anonymiser.
+	Anonymise a postgresql dump file using a toml settings file setting out
+	the deletion, string_replace and file_replace filters to use.
 
-    Anonymise a postgresql dump file using a toml settings file setting out
-    the deletion, string_replace and file_replace filters to use.
+	gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test] [Input]
 
-    gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test] [Input]
+	Application Options:
+	  -s, --settings= settings toml file
+	  -o, --output=   output file (otherwise stdout)
+	  -t, --testmode  show only changed lines for testing
 
-    Application Options:
-      -s, --settings= settings toml file
-      -o, --output=   output file (otherwise stdout)
-      -t, --testmode  show only changed lines for testing
+	Help Options:
+	  -h, --help      Show this help message
 
-    Help Options:
-      -h, --help      Show this help message
-
-    Arguments:
-      Input:          input file or stdin
+	Arguments:
+	  Input:          input file or stdin
 
 ## An example settings file
 
 A toml file is used to describe tables that should be anonymised. For
 each table to be anonymised one or more filters may be provided. The
 filters are either a delete filter (which removes all rows in the table)
-or a per-column filter.
+or single or multi-column filters.
 
-Column filters meet the `RowFilterer` interface.
-
-Presently, apart from the delete filter, two per-column string replacement
-filters are provided. The `string_replace` filter replaces all entries
-with the provided source string. The `file_replace` filter replacement
-corresponds the line of the input with the line in the source file. If
-the source file is exhausted, numbering begins again at the top of the
-source.
+Presently, apart from the delete filter, three per-column string
+replacement filters are provided. The `uuid` filter replaces the named
+columns with new uuids. The `string replace` filter replaces the named
+columns with the replacement strings. Finally, the `file replace` filter
+replaces the named columns with corresponding lines in the source file.
+If the source file is exhausted, numbering begins again at the top of
+the source.
 
 ```toml
+title = "test settings file for gopg-anonymiser"
+
+[tables]
+
+[tables.events]
+tablename = "example_schema.events"
+
+[[tables.events.filters]]
+filter = "delete"
+
 [tables.users]
 tablename = "public.users"
 
 [[tables.users.filters]]
-column = "name"
-filter = "file_replace"
+filter = "file replace"
+columns = ["name"]
 source = "testdata/newnames.txt"
 
 [[tables.users.filters]]
-column = "password"
-filter = "string_replace"
+filter = "string replace"
+columns = ["password"]
 # give all users the same password
-source = "$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"
+replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
+
+[[tables.users.filters]]
+filter = "file replace"
+columns = ["notes"]
+# cycle through 3 example notes
+source = "testdata/newnotes.txt"
 ```
 
 ## Example

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	flags "github.com/jessevdk/go-flags"
@@ -27,7 +26,7 @@ type Options struct {
 
 // parseFlags parses the command line options, taken out of main to
 // allow testing
-func parseFlags() (input io.Reader, settings string, output io.Writer, test bool, err error) {
+func parseFlags() (args anonArgs, err error) {
 
 	var options Options
 	var parser = flags.NewParser(&options, flags.Default)
@@ -37,32 +36,32 @@ func parseFlags() (input io.Reader, settings string, output io.Writer, test bool
 		os.Exit(1)
 	}
 
-	test = options.Test
-	settings = options.Settings
+	args.changedOnly = options.Test
+	args.settingsFile = options.Settings
 
 	// open stdin or file for reading
 	if options.Args.Input == "" {
-		input = os.Stdin
+		args.dumpFile = os.Stdin
 	} else {
 		filer, err := os.Open(options.Args.Input)
 		if err != nil {
-			return input, settings, output, test,
+			return args,
 				fmt.Errorf("Could not open file %s for reading, %s", options.Args.Input, err)
 		}
-		input = filer
+		args.dumpFile = filer
 	}
 
 	// open stdout or file for writing
 	if options.Output == "" {
-		output = os.Stdout
+		args.output = os.Stdout
 	} else {
 		filer, err := os.Create(options.Output)
 		if err != nil {
-			return input, settings, output, test,
+			return args,
 				fmt.Errorf("Could not create file %s, %s", options.Output, err)
 		}
-		output = filer
+		args.output = filer
 	}
 
-	return input, settings, output, test, nil
+	return args, nil
 }

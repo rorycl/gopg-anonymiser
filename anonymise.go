@@ -67,11 +67,19 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 	return rfs, nil
 }
 
+// anonArgs is the Anonymise function signature
+type anonArgs struct {
+	dumpFile     io.Reader
+	settingsFile string
+	output       io.Writer
+	changedOnly  bool
+}
+
 // Anonymise anonymises a postgresql dump file
-func Anonymise(dumpFile io.Reader, settingsFile string, output io.Writer, changedOnly bool) error {
+func Anonymise(args anonArgs) error {
 
 	// load settings
-	settings, err := LoadToml(settingsFile)
+	settings, err := LoadToml(args.settingsFile)
 	if err != nil {
 		return fmt.Errorf("settings file load error %s", err)
 	}
@@ -85,7 +93,7 @@ func Anonymise(dumpFile io.Reader, settingsFile string, output io.Writer, change
 	dt := new(DumpTable)
 	dtFilters := []RowFilterer{}
 
-	scanner := bufio.NewScanner(dumpFile)
+	scanner := bufio.NewScanner(args.dumpFile)
 
 	var lineNo = 0
 	for scanner.Scan() {
@@ -122,10 +130,10 @@ func Anonymise(dumpFile io.Reader, settingsFile string, output io.Writer, change
 			columns, ok := dt.LineSplitter(scanner.Text())
 			if !ok {
 				dt = new(DumpTable)
-				if changedOnly {
+				if args.changedOnly {
 					continue
 				}
-				_, err := io.WriteString(output, t+"\n")
+				_, err := io.WriteString(args.output, t+"\n")
 				if err != nil {
 					return fmt.Errorf("write error: %w", err)
 				}
@@ -159,11 +167,11 @@ func Anonymise(dumpFile io.Reader, settingsFile string, output io.Writer, change
 		}
 
 		// output
-		if changedOnly && !dt.Inited() {
+		if args.changedOnly && !dt.Inited() {
 			continue
 		}
 
-		_, err := io.WriteString(output, t+"\n")
+		_, err := io.WriteString(args.output, t+"\n")
 		if err != nil {
 			return fmt.Errorf("write error: %w", err)
 		}

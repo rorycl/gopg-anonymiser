@@ -22,7 +22,14 @@ func TestAnonymiseNoFail(t *testing.T) {
 	}
 	defer os.Remove(settingsFile.Name())
 
-	err = Anonymise(dumpFile, settingsFile.Name(), os.Stdout, false)
+	args := anonArgs{
+		dumpFile:     dumpFile,
+		settingsFile: settingsFile.Name(),
+		output:       os.Stdout,
+		changedOnly:  false,
+	}
+
+	err = Anonymise(args)
 	if err != nil {
 		t.Error("empty files should not fail")
 	}
@@ -38,7 +45,14 @@ func TestAnonymiseFail(t *testing.T) {
 
 	settingsFile := "/tmp/ghi/jkl.toml"
 
-	err = Anonymise(dumpFile, settingsFile, os.Stdout, false)
+	args := anonArgs{
+		dumpFile:     dumpFile,
+		settingsFile: settingsFile,
+		output:       os.Stdout,
+		changedOnly:  false,
+	}
+
+	err = Anonymise(args)
 	if err == nil {
 		t.Error("nonsense toml files should fail")
 	}
@@ -57,7 +71,14 @@ func TestAnonymiseOK(t *testing.T) {
 
 	buffer := bytes.NewBuffer(nil)
 
-	err = Anonymise(df, settingsFile, buffer, true)
+	args := anonArgs{
+		dumpFile:     df,
+		settingsFile: settingsFile,
+		output:       buffer,
+		changedOnly:  true,
+	}
+
+	err = Anonymise(args)
 	if err != nil {
 		t.Errorf("Anonymise should not fail: %s", err)
 	}

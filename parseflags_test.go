@@ -8,7 +8,7 @@ import (
 func TestFlagParsing(t *testing.T) {
 
 	os.Args = []string{"prog", "-s", "settings.toml"}
-	_, _, _, _, err := parseFlags()
+	_, err := parseFlags()
 	if err != nil {
 		t.Errorf("failed flag parsing %s", err)
 	}
@@ -17,7 +17,7 @@ func TestFlagParsing(t *testing.T) {
 func TestFlagParsingFail(t *testing.T) {
 
 	os.Args = []string{"prog", "-s", "settings.toml", "/xyz/unlikely.name"}
-	_, _, _, _, err := parseFlags()
+	_, err := parseFlags()
 	if err == nil {
 		t.Errorf("flag parsing should have failed %s", err)
 	}

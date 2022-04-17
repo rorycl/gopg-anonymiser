@@ -3,14 +3,23 @@ filter = "delete"
 
 [["public.users"]]
 filter = "file replace"
-columns = ["name"]
+# column names must equal those in the dump file "COPY" load header
+# the number of columns in the source must equal the columns listed
+columns = ["firstname", "lastname"]
 source = "testdata/newnames.txt"
 
 [["public.users"]]
 filter = "string replace"
+# column names must equal those in the dump file "COPY" load header
+# one or more columns must be provided
 columns = ["password"]
+# the number of replacements must equal the number of columns
 # give all users the same password
 replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
+
+[["public.users"]]
+filter = "uuid"
+columns = ["uuid"]
 
 [["public.users"]]
 filter = "file replace"

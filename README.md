@@ -7,9 +7,9 @@ A simple tool for anonymising postgresql dump files from the Postgresql
 set out in a settings toml file.
 
 The tool takes advantage of the structure of `COPY` lines in dump files,
-that is those between a `COPY public.users (...column list...) FROM
-stdin;` and a `\.` terminating line, to separate the lines into columns
-and to either remove lines or replace the columns specified.
+that is those between a `COPY <schema>.<tablename> (...column list...)
+FROM stdin;` and a `\.` terminating line, to separate the lines into
+columns and to either remove lines or replace the columns specified.
 
 ## Overview
 
@@ -58,17 +58,20 @@ Use the `-t` (testmode) flag to only show altered rows.
 ## An example settings file
 
 A toml file is used to describe tables that should be anonymised. For
-each table to be anonymised one or more filters may be provided. The
-filters are either a delete filter (which removes all rows in the table)
-or single or multi-column filters.
+each table to be anonymised one or more filters may be provided.
 
-Presently, apart from the delete filter, three per-column string
-replacement filters are provided. The `uuid` filter replaces the named
-columns with new uuids. The `string replace` filter replaces the named
-columns with the replacement strings. Finally, the `file replace` filter
-replaces the named columns with corresponding lines in the source file.
-If the source file is exhausted, numbering begins again at the top of
-the source.
+Presently, apart from the row delete filter, three column replacement
+filters are provided:
+
+- *uuid* replaces one or more columns with a new uuid
+
+- *string replace* replaces the data in one or more columns with
+  replacement values
+
+- *file replace* replaces the data in one or more columns with
+  corresponding lines in the source file. If the source file is
+  exhausted, cycle the inputs starting from the first line of the
+  source.
 
 ```toml
 [["example_schema.events"]]
@@ -76,12 +79,17 @@ filter = "delete"
 
 [["public.users"]]
 filter = "file replace"
+# column names must equal those in the dump file "COPY" load header
+# the number of columns in the source must equal the columns listed
 columns = ["firstname", "lastname"]
 source = "testdata/newnames.txt"
 
 [["public.users"]]
 filter = "string replace"
+# column names must equal those in the dump file "COPY" load header
+# one or more columns must be provided
 columns = ["password"]
+# the number of replacements must equal the number of columns
 # give all users the same password
 replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
 

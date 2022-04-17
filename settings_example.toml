@@ -1,27 +1,19 @@
-title = "example settings file for gopg-anonymiser"
-
-[tables]
-
-[tables.messages]
-tablename = "public.messages"
-
-[[tables.messages.filters]]
-column = "all"
+[["example_schema.events"]]
 filter = "delete"
-# source = ""
 
-[tables.users]
-tablename = "public.users"
+[["public.users"]]
+filter = "file replace"
+columns = ["name"]
+source = "testdata/newnames.txt"
 
-[[tables.users.filters]]
-column = "name"
-filter = "file_replace"
-source = "/tmp/newnames.txt"
+[["public.users"]]
+filter = "string replace"
+columns = ["password"]
+# give all users the same password
+replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
 
-[[tables.users.filters]]
-column = "password"
-filter = "string_replace"
-source = "this is a password"
-
-
-
+[["public.users"]]
+filter = "file replace"
+columns = ["notes"]
+# cycle through 3 example notes
+source = "testdata/newnotes.txt"

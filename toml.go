@@ -4,21 +4,12 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Settings describes types of tables described in the settings
-// toml file
-type Settings struct {
-	Title  string
-	Tables map[string]SettingTable
-}
+// Settings describes the settings of the project as a map with
+// postgresql table names as keys with values as an array of filters
+type Settings map[string][]Filter
 
-// SettingTable sets out the filters for a Table
-type SettingTable struct {
-	TableName string
-	Filters   []filters
-}
-
-// Filters structure
-type filters struct {
+// Filter structure
+type Filter struct {
 	Filter       string
 	Columns      []string
 	Replacements []string
@@ -27,7 +18,6 @@ type filters struct {
 
 // LoadToml loads a toml file and returns a Settings structure
 func LoadToml(file string) (Settings, error) {
-
 	var tables Settings
 	_, err := toml.DecodeFile(file, &tables)
 	if err != nil {

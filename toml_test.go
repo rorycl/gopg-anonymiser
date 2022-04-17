@@ -7,29 +7,41 @@ import (
 
 func TestTomlSettings(t *testing.T) {
 
-	lt, err := LoadToml("testdata/settings.toml")
+	toml, err := LoadToml("testdata/settings.toml")
 	if err != nil {
 		t.Errorf("Could not parse yaml %v", err)
 	}
 
-	if lt.Title != "test settings file for gopg-anonymiser" {
-		t.Errorf("Title incorrect")
+	if len(toml["example_schema.events"]) != 1 {
+		t.Errorf(
+			"the events table should have one filter, got %d",
+			len(toml["example_schema.events"]),
+		)
 	}
-	if len(lt.Tables["events"].Filters) != 1 {
-		t.Errorf("the events table should have one filter")
-	}
-	if len(lt.Tables["users"].Filters) != 3 {
-		t.Errorf("the users table should have three filters")
-	}
-	if lt.Tables["users"].Filters[1].Columns[0] != "password" {
-		t.Errorf("the second users target column should be 'password'")
-	}
-	if lt.Tables["users"].Filters[1].Filter != "string replace" {
-		t.Errorf("the second users filter should be string_replace")
-	}
-	if !strings.Contains(lt.Tables["users"].Filters[1].Replacements[0], "$2a$06$.wHg4l7") {
-		t.Errorf("the second users source should start '$2a$06$.wHg4l7'")
+	if len(toml["public.users"]) != 3 {
+		t.Errorf(
+			"the users table should have three filters, got %d",
+			len(toml["public.users"]),
+		)
 	}
 
-	t.Logf("%+v\n", lt)
+	/*
+		test the second filter
+		[["public.users"]]
+		filter = "string replace"
+		columns = ["password"]
+		# give all users the same password
+		replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
+	*/
+
+	if toml["public.users"][1].Columns[0] != "password" {
+		t.Errorf("the second users target column should be 'password'")
+	}
+	if toml["public.users"][1].Filter != "string replace" {
+		t.Errorf("the second users filter should be string_replace")
+	}
+	if !strings.Contains(toml["public.users"][1].Replacements[0], "$2a$06$.wHg4l7") {
+		t.Errorf("the second users source should start '$2a$06$.wHg4l7'")
+	}
+	t.Logf("%+v\n", toml)
 }

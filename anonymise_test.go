@@ -87,9 +87,9 @@ func TestAnonymiseOK(t *testing.T) {
 	if len(contents) != 7 {
 		t.Errorf("split contents should provide 7 parts, returned %d", len(contents))
 	}
-	count := strings.Count(buffer.String(), "dilara")
-	if count != 3 {
-		t.Errorf("count of dilara string not 3, got %d", count)
+	count := strings.Count(buffer.String(), "zachary")
+	if count != 2 {
+		t.Errorf("count of zachary string not 2, got %d", count)
 	}
 	count = strings.Count(buffer.String(), "a third note")
 	if count != 2 {

@@ -18,9 +18,9 @@ func TestTomlSettings(t *testing.T) {
 			len(toml["example_schema.events"]),
 		)
 	}
-	if len(toml["public.users"]) != 3 {
+	if len(toml["public.users"]) != 4 {
 		t.Errorf(
-			"the users table should have three filters, got %d",
+			"the users table should have four filters, got %d",
 			len(toml["public.users"]),
 		)
 	}

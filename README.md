@@ -6,6 +6,11 @@ A simple tool for anonymising postgresql dump files from the Postgresql
 `pg_dump` command, which uses row delete and column replacement filters
 set out in a settings toml file.
 
+The tool takes advantage of the structure of `COPY` lines in dump files,
+that is those between a `COPY public.users (...column list...) FROM
+stdin;` and a `\.` terminating line, to separate the lines into columns
+and to either remove lines or replace the columns specified.
+
 ## Overview
 
 The anonymiser can be used in a chain of pipes using `pg_dump` or
@@ -14,7 +19,7 @@ The anonymiser can be used in a chain of pipes using `pg_dump` or
     pg_dump dbname -U <user> | \
         ./gopg-anonymise -s settings.toml
 
-or:
+or to anonymise a pg\_dump custom format (`-Fc`) dump file to stdout:
 
     pg_restore -f - /tmp/test.sqlc | \
         ./gopg-anonymise -s setttings.toml
@@ -93,9 +98,11 @@ source = "testdata/newnotes.txt"
 
 ## Example
 
-This example uses the dump and settings toml files provided in the testdata directory.
+This example uses the dump and settings toml files provided in the
+testdata directory.
 
-The events table is effectively truncated. The user list is cycled for
+The password column is replaced verbatim, the uuids are regenerated and
+the events table is effectively truncated. The user list is cycled for
 the 6th entry as there are only 5 entries in `testdata/newnames.txt`,
 and the three notes in `testdata/newnotes.txt` are similarly cycled.
 

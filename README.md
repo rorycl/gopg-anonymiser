@@ -64,31 +64,21 @@ If the source file is exhausted, numbering begins again at the top of
 the source.
 
 ```toml
-title = "test settings file for gopg-anonymiser"
-
-[tables]
-
-[tables.events]
-tablename = "example_schema.events"
-
-[[tables.events.filters]]
+[["example_schema.events"]]
 filter = "delete"
 
-[tables.users]
-tablename = "public.users"
-
-[[tables.users.filters]]
+[["public.users"]]
 filter = "file replace"
 columns = ["name"]
 source = "testdata/newnames.txt"
 
-[[tables.users.filters]]
+[["public.users"]]
 filter = "string replace"
 columns = ["password"]
 # give all users the same password
 replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
 
-[[tables.users.filters]]
+[["public.users"]]
 filter = "file replace"
 columns = ["notes"]
 # cycle through 3 example notes

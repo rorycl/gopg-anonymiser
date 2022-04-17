@@ -71,7 +71,7 @@ filter = "delete"
 
 [["public.users"]]
 filter = "file replace"
-columns = ["name"]
+columns = ["firstname", "lastname"]
 source = "testdata/newnames.txt"
 
 [["public.users"]]
@@ -79,6 +79,10 @@ filter = "string replace"
 columns = ["password"]
 # give all users the same password
 replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
+
+[["public.users"]]
+filter = "uuid"
+columns = ["uuid"]
 
 [["public.users"]]
 filter = "file replace"

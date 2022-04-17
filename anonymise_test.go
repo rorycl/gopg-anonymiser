@@ -102,31 +102,22 @@ func TestAnonymiseOK(t *testing.T) {
 func TestLoadFilters(t *testing.T) {
 
 	settings := Settings{
-		Title: "test",
-		Tables: map[string]SettingTable{
-			"a": SettingTable{
-				TableName: "tableA",
-				Filters: []filters{
-					filters{
-						Filter:       "string replace",
-						Columns:      []string{"a"},
-						Replacements: []string{"abc"},
-					},
-				},
+		"a": []Filter{
+			Filter{
+				Filter:       "string replace",
+				Columns:      []string{"a", "c"},
+				Replacements: []string{"abc", "def"},
 			},
-			"b": SettingTable{
-				TableName: "tableB",
-				Filters: []filters{
-					filters{
-						Filter:  "uuid",
-						Columns: []string{"b"},
-					},
-				},
+		},
+		"b": []Filter{
+			Filter{
+				Filter:  "uuid",
+				Columns: []string{"b", "d"},
 			},
 		},
 	}
 
-	dt := DumpTable{TableName: "tableB", ColumnNames: []string{"a", "b", "c"}}
+	dt := DumpTable{TableName: "b", ColumnNames: []string{"a", "b", "c", "d"}}
 
 	rowFilters, err := loadFilters(settings, &dt)
 	if err != nil {
@@ -140,4 +131,83 @@ func TestLoadFilters(t *testing.T) {
 	}
 	t.Logf("rowFilters: %T %+v\n", rowFilters, rowFilters)
 
+}
+
+func TestLoadFiltersFail(t *testing.T) {
+
+	// all tests should fail
+	tests := []struct {
+		name    string
+		setting Settings
+	}{
+		{
+			name: "string replace should fail with no columns",
+			setting: Settings{
+				"b": []Filter{
+					Filter{
+						Filter:       "string replace",
+						Columns:      []string{},
+						Replacements: []string{"abc", "def"},
+					},
+				},
+			},
+		},
+		{
+			name: "string replace should fail with col len != replacement len",
+			setting: Settings{
+				"b": []Filter{
+					Filter{
+						Filter:       "string replace",
+						Columns:      []string{"a", "c", "d"},
+						Replacements: []string{"abc", "def"},
+					},
+				},
+			},
+		},
+		{
+			name: "uuid replace should fail with no columns",
+			setting: Settings{
+				"b": []Filter{
+					Filter{
+						Filter:  "uuid",
+						Columns: []string{},
+					},
+				},
+			},
+		},
+		{
+			name: "file replace should fail with no columns",
+			setting: Settings{
+				"b": []Filter{
+					Filter{
+						Filter:  "file replace",
+						Columns: []string{},
+						Source:  "/dev/random",
+					},
+				},
+			},
+		},
+		{
+			name: "file replace should fail with no source",
+			setting: Settings{
+				"b": []Filter{
+					Filter{
+						Filter:  "file replace",
+						Columns: []string{"a", "c"},
+						Source:  "",
+					},
+				},
+			},
+		},
+	}
+
+	dt := DumpTable{TableName: "b", ColumnNames: []string{"a", "b", "c", "d"}}
+
+	for _, tc := range tests {
+		_, err := loadFilters(tc.setting, &dt)
+		if err == nil {
+			t.Errorf("test %s failed: %s", tc.name, err)
+		}
+		t.Log(err)
+	}
 }

@@ -14,22 +14,21 @@ import (
 func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 
 	rfs := []RowFilterer{}
-	tableName := dt.TableName
 
-	// retrieve settings for this dump table
-	var settingTable SettingTable
-	for _, t := range settings.Tables {
-		if t.TableName == tableName {
-			settingTable = t
+	// retrieve settings for this dump table else error
+	var filters []Filter
+	for tableName, tableFilters := range settings {
+		if tableName == dt.TableName {
+			filters = tableFilters
 			break
 		}
 	}
-	if settingTable.TableName == "" {
-		return rfs, fmt.Errorf("table '%s' could not be found in settings", tableName)
+	if len(filters) == 0 {
+		return rfs, fmt.Errorf("table '%s' could not be found in settings", dt.TableName)
 	}
 
 	// load filters
-	for _, f := range settingTable.Filters {
+	for _, f := range filters {
 
 		switch f.Filter {
 		case "delete":
@@ -73,7 +72,7 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 				filer,
 			)
 			if err != nil {
-				return rfs, fmt.Errorf("source error for multi_string_replace : %w", err)
+				return rfs, fmt.Errorf("source error for file error: %w", err)
 			}
 			rfs = append(rfs, filter)
 
@@ -86,10 +85,14 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 
 // anonArgs is the Anonymise function signature
 type anonArgs struct {
-	dumpFile     io.Reader
+	// a postgresql dump file via either os.Stdin or a file
+	dumpFile io.Reader
+	// a toml settings file
 	settingsFile string
-	output       io.Writer
-	changedOnly  bool
+	// output to either os.Stdout or a file
+	output io.Writer
+	// only show changed tables inthe output
+	changedOnly bool
 }
 
 // Anonymise anonymises a postgresql dump file
@@ -102,8 +105,8 @@ func Anonymise(args anonArgs) error {
 	}
 
 	interestingTables := []string{}
-	for _, t := range settings.Tables {
-		interestingTables = append(interestingTables, t.TableName)
+	for tableName := range settings {
+		interestingTables = append(interestingTables, tableName)
 	}
 
 	// init a dump table and related filters
@@ -140,6 +143,8 @@ func Anonymise(args anonArgs) error {
 			}
 
 		} else {
+			// the dump table is initialised; filter the lines unless
+			// the end of table marker is found
 
 			// count lines from 1
 			lineNo++

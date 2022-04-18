@@ -48,7 +48,9 @@ func TestDeleteFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", i, err)
@@ -90,7 +92,9 @@ func TestStringReplaceFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -129,7 +133,9 @@ func TestStringReplaceFilterWhereTrue(t *testing.T) {
 		{name: "Zachary Zebb", password: "qwerty yuiop"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -174,7 +180,9 @@ func TestStringReplaceFilterWhereFalse(t *testing.T) {
 		{name: "Zachary Zebb", password: "APassword"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -247,7 +255,9 @@ func TestFileReplaceFilter(t *testing.T) {
 		3: "replace1",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -284,7 +294,9 @@ func TestFileReplaceFilterWhereTrue(t *testing.T) {
 		3: "Zachary Zebb",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -321,7 +333,9 @@ func TestFileReplaceFilterWhereFalse(t *testing.T) {
 		3: "replace1",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
@@ -346,7 +360,10 @@ func TestUUIDReplaceFilter(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
-	for _, r := range rows {
+
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
@@ -354,6 +371,72 @@ func TestUUIDReplaceFilter(t *testing.T) {
 		}
 		if uuidOld == ro.Columns[3] {
 			t.Errorf("Old uuid == new %s", uuidOld)
+		}
+		t.Logf("%+v\n", ro)
+	}
+
+}
+
+func TestUUIDReplaceFilterWhereTrue(t *testing.T) {
+
+	filter, err := NewUUIDFilter(
+		[]string{"uuid"},
+		map[string]string{"age": "55"}, // whereTrue
+		map[string]string{},            // whereFalse
+	)
+
+	if err != nil {
+		t.Errorf("Could not initialise uuid filter: %s", err)
+	}
+
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
+		uuidOld := r.Columns[3]
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		// third row should keep the same uuid
+		if i == 2 {
+			if uuidOld == ro.Columns[3] {
+				t.Errorf("Row %d uuid old %s == new %s", i, uuidOld, ro.Columns[3])
+			}
+		} else if uuidOld != ro.Columns[3] {
+			t.Errorf("** Row %d uuid old %s != new %s", i, uuidOld, ro.Columns[3])
+		}
+		t.Logf("%+v\n", ro)
+	}
+
+}
+
+func TestUUIDReplaceFilterWhereFalse(t *testing.T) {
+
+	filter, err := NewUUIDFilter(
+		[]string{"uuid"},
+		map[string]string{},            // whereTrue
+		map[string]string{"age": "55"}, // whereFalse
+	)
+
+	if err != nil {
+		t.Errorf("Could not initialise uuid filter: %s", err)
+	}
+
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
+		uuidOld := r.Columns[3]
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		// third row should keep the same uuid
+		if i == 2 {
+			if uuidOld != ro.Columns[3] {
+				t.Errorf("Row %d uuid old %s != new %s", i, uuidOld, ro.Columns[3])
+			}
+		} else if uuidOld == ro.Columns[3] {
+			t.Errorf("** Row %d uuid old %s == new %s", i, uuidOld, ro.Columns[3])
 		}
 		t.Logf("%+v\n", ro)
 	}
@@ -414,7 +497,9 @@ func TestAllBasicFilters(t *testing.T) {
 		"uuid replace",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for _, r := range rowsCopy {
 		ro := r
 		// use interface
 		for i, f := range []RowFilterer{filter, filter2, filter3, filter4} {

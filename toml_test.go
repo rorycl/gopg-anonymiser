@@ -25,23 +25,27 @@ func TestTomlSettings(t *testing.T) {
 		)
 	}
 
-	/*
-		test the second filter
-		[["public.users"]]
-		filter = "string replace"
-		columns = ["password"]
-		# give all users the same password
-		replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
-	*/
-
-	if toml["public.users"][1].Columns[0] != "password" {
-		t.Errorf("the second users target column should be 'password'")
+	filterOne := toml["public.users"][0]
+	if filterOne.Columns[0] != "password" {
+		t.Errorf("the first users target column should be 'password'")
 	}
-	if toml["public.users"][1].Filter != "string replace" {
-		t.Errorf("the second users filter should be string_replace")
+	if filterOne.Filter != "string replace" {
+		t.Errorf("the first users filter should be string_replace")
 	}
-	if !strings.Contains(toml["public.users"][1].Replacements[0], "$2a$06$.wHg4l7") {
-		t.Errorf("the second users source should start '$2a$06$.wHg4l7'")
+	if !strings.Contains(filterOne.Replacements[0], "$2a$06$.wHg4l7") {
+		t.Errorf("the first users filter source should start '$2a$06$.wHg4l7'")
+	}
+	if len(filterOne.If) != 0 {
+		t.Error("the length of the first users if map should be 0")
+	}
+	if len(filterOne.NotIf) != 1 {
+		t.Error("the length of the first users not if map should be 1")
+	}
+	if l, ok := filterOne.NotIf["lastname"]; !ok || l != "langoustine" {
+		t.Error("first user filter notif does not have correct params")
+	}
+	if !strings.Contains(filterOne.Replacements[0], "$2a$06$.wHg4l7") {
+		t.Errorf("the first users source should start '$2a$06$.wHg4l7'")
 	}
 	t.Logf("%+v\n", toml)
 }

@@ -177,7 +177,7 @@ func Anonymise(args anonArgs) error {
 			for _, f := range dtFilters {
 				row, err = f.Filter(row)
 				if err != nil {
-					return fmt.Errorf("filter error %w", err)
+					return fmt.Errorf("filter error on table %s: %w", dt.TableName, err)
 				}
 			}
 			// convert columns back to t unless the Row has been deleted

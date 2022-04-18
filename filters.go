@@ -76,9 +76,18 @@ type RowFilterer interface {
 	Filter(r Row) (Row, error)
 }
 
+// filterName is the base filter type name, embedded in each filter
+// struct
+type filterName string
+
+// FilterName returns the name of the filter type
+func (f filterName) FilterName() string {
+	return string(f)
+}
+
 // DeleteFilter removes all lines
 type DeleteFilter struct {
-	Typer string
+	filterName
 }
 
 // NewDeleteFilter makes a new DeleteFilter
@@ -92,15 +101,10 @@ func (f DeleteFilter) Filter(r Row) (Row, error) {
 	return rr, nil
 }
 
-// FilterName returns the Typer information about the DeleteFilter
-func (f DeleteFilter) FilterName() string {
-	return f.Typer
-}
-
 // replaceByColumnFilter replaces a column named "Column" with the
 // provided replacement string
 type replaceByColumnFilter struct {
-	Typer       string
+	filterName
 	Column      string
 	Replacement string
 	whereTrue   map[string]string
@@ -111,7 +115,7 @@ type replaceByColumnFilter struct {
 // should only be called by a multicolumn replace filter
 func newReplaceByColumnFilter(column, replacement string, whereTrue, whereFalse map[string]string) (*replaceByColumnFilter, error) {
 	f := &replaceByColumnFilter{
-		Typer:       "string replace",
+		filterName:  "string replace",
 		Column:      column,
 		Replacement: replacement,
 		whereTrue:   whereTrue,
@@ -136,11 +140,11 @@ func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
 	}
 
 	// if no match for whereTrue conditions, return
-	if len(f.whereTrue) > 0 && r.match(f.Typer, f.whereTrue) != true {
+	if len(f.whereTrue) > 0 && r.match(f.FilterName(), f.whereTrue) != true {
 		return r, nil
 	}
 	// if match for whereFalse conditions, return
-	if len(f.whereFalse) > 0 && r.match(f.Typer, f.whereFalse) == true {
+	if len(f.whereFalse) > 0 && r.match(f.FilterName(), f.whereFalse) == true {
 		return r, nil
 	}
 
@@ -155,15 +159,10 @@ func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
 	return r, nil
 }
 
-// FilterName returns the Typer information about the replaceByColumnFilter
-func (f replaceByColumnFilter) FilterName() string {
-	return f.Typer
-}
-
 // fileByColumnFilter reads the contents of file into the struct and
 // uses this to replace the contents of the designated column
 type fileByColumnFilter struct {
-	Typer        string
+	filterName
 	Column       string
 	Replacements []string
 	whereTrue    map[string]string
@@ -176,7 +175,7 @@ type fileByColumnFilter struct {
 func newFileByColumnFilter(column string, fh io.Reader, whereTrue, whereFalse map[string]string) (*fileByColumnFilter, error) {
 
 	f := &fileByColumnFilter{
-		Typer:      "file replace",
+		filterName: "file replace",
 		Column:     column,
 		whereTrue:  whereTrue,
 		whereFalse: whereFalse,
@@ -214,11 +213,11 @@ func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 	}
 
 	// if no match for whereTrue conditions, return
-	if len(f.whereTrue) > 0 && r.match(f.Typer, f.whereTrue) != true {
+	if len(f.whereTrue) > 0 && r.match(f.FilterName(), f.whereTrue) != true {
 		return r, nil
 	}
 	// if match for whereFalse conditions, return
-	if len(f.whereFalse) > 0 && r.match(f.Typer, f.whereFalse) == true {
+	if len(f.whereFalse) > 0 && r.match(f.FilterName(), f.whereFalse) == true {
 		return r, nil
 	}
 
@@ -235,15 +234,10 @@ func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 	return r, nil
 }
 
-// FilterName returns the Typer information about the fileByColumnFilter
-func (f fileByColumnFilter) FilterName() string {
-	return f.Typer
-}
-
 // UUIDFilter replaces the column with the output of a UUID
 // generation function
 type UUIDFilter struct {
-	Typer      string
+	filterName
 	Columns    []string
 	whereTrue  map[string]string
 	whereFalse map[string]string
@@ -253,7 +247,7 @@ type UUIDFilter struct {
 func NewUUIDFilter(columns []string, whereTrue, whereFalse map[string]string) (*UUIDFilter, error) {
 
 	f := UUIDFilter{
-		Typer:      "uuid replace",
+		filterName: "uuid replace",
 		Columns:    columns,
 		whereTrue:  whereTrue,
 		whereFalse: whereFalse,
@@ -277,11 +271,11 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 	}
 
 	// if no match for whereTrue conditions, return
-	if len(f.whereTrue) > 0 && r.match(f.Typer, f.whereTrue) != true {
+	if len(f.whereTrue) > 0 && r.match(f.FilterName(), f.whereTrue) != true {
 		return r, nil
 	}
 	// if match for whereFalse conditions, return
-	if len(f.whereFalse) > 0 && r.match(f.Typer, f.whereFalse) == true {
+	if len(f.whereFalse) > 0 && r.match(f.FilterName(), f.whereFalse) == true {
 		return r, nil
 	}
 
@@ -304,16 +298,11 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 	return r, nil
 }
 
-// FilterName returns the name of the filter type
-func (f UUIDFilter) FilterName() string {
-	return f.Typer
-}
-
 // ReplaceFilter allows multiple columns to be replaced by fixed
 // strings, described by a slice of replacements. ReplaceFilter uses
 // replaceByColumnFilter to do its work
 type ReplaceFilter struct {
-	Typer        string
+	filterName
 	Columns      []string
 	Replacements []string
 	filters      []RowFilterer
@@ -324,7 +313,7 @@ type ReplaceFilter struct {
 // column.
 func NewReplaceFilter(columns, replacements []string, whereTrue, whereFalse map[string]string) (*ReplaceFilter, error) {
 	f := &ReplaceFilter{
-		Typer:        "multi string replace",
+		filterName:   "multi string replace",
 		Columns:      columns,
 		Replacements: replacements,
 		filters:      []RowFilterer{},
@@ -362,17 +351,12 @@ func (f ReplaceFilter) Filter(r Row) (Row, error) {
 	return r, nil
 }
 
-// FilterName returns the name of the filter type
-func (f ReplaceFilter) FilterName() string {
-	return f.Typer
-}
-
 // FileFilter replaces a number of columns in a table with replacements
 // from a tab delmited file (typically a postgres dump file). The actual
 // work of this filter is performed by a set of fileByColumnFilter
 // filter
 type FileFilter struct {
-	Typer        string
+	filterName
 	Columns      []string
 	Replacements []bytes.Buffer
 	filters      []RowFilterer
@@ -381,9 +365,9 @@ type FileFilter struct {
 // NewFileFilter creates a new FileFilter
 func NewFileFilter(columns []string, fh io.Reader, whereTrue, whereFalse map[string]string) (*FileFilter, error) {
 	f := &FileFilter{
-		Typer:   "multi file replace",
-		Columns: columns,
-		filters: []RowFilterer{},
+		filterName: "multi file replace",
+		Columns:    columns,
+		filters:    []RowFilterer{},
 	}
 	if len(columns) == 0 {
 		return f, errors.New("multi file replace: at least one column must be specified")
@@ -433,9 +417,4 @@ func (f FileFilter) Filter(r Row) (Row, error) {
 		}
 	}
 	return r, nil
-}
-
-// FilterName returns the name of the filter type
-func (f FileFilter) FilterName() string {
-	return f.Typer
 }

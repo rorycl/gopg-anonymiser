@@ -80,7 +80,8 @@ func (r *Row) notMatch(whereFalse map[string]string) (bool, error) {
 }
 
 // RowFilterer is the interface that any row filter needs to fulfil to
-// filter a row, perhaps on a column basis, and allow chaining of
+// filter a row, perhaps on a column basis, returning a row to allow
+// chaining of filters
 type RowFilterer interface {
 	// FilterName returns the name of the filter
 	FilterName() string

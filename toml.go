@@ -14,6 +14,9 @@ type Filter struct {
 	Columns      []string
 	Replacements []string
 	Source       string
+	// conditionals
+	If    map[string]string
+	NotIf map[string]string
 }
 
 // LoadToml loads a toml file and returns a Settings structure

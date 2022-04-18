@@ -36,7 +36,7 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 			rfs = append(rfs, filter)
 
 		case "uuid":
-			filter, err := NewUUIDFilter(f.Columns)
+			filter, err := NewUUIDFilter(f.Columns, f.If, f.NotIf)
 			// fixme
 			if err != nil {
 				return rfs, fmt.Errorf("uuid filter error: %w", err)
@@ -53,6 +53,8 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 			filter, err := NewReplaceFilter(
 				f.Columns,
 				f.Replacements,
+				f.If,
+				f.NotIf,
 			)
 			if err != nil {
 				return rfs, fmt.Errorf("source error for string replace: %w", err)
@@ -70,6 +72,8 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 			filter, err := NewFileFilter(
 				f.Columns,
 				filer,
+				f.If,
+				f.NotIf,
 			)
 			if err != nil {
 				return rfs, fmt.Errorf("source error for file error: %w", err)

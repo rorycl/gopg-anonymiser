@@ -40,7 +40,7 @@ func parseFlags() (args anonArgs, err error) {
 	args.settingsFile = options.Settings
 
 	// open stdin or file for reading
-	if options.Args.Input == "" {
+	if options.Args.Input == "" || options.Args.Input == "-" {
 		args.dumpFile = os.Stdin
 	} else {
 		filer, err := os.Open(options.Args.Input)
@@ -52,7 +52,7 @@ func parseFlags() (args anonArgs, err error) {
 	}
 
 	// open stdout or file for writing
-	if options.Output == "" {
+	if options.Output == "" || options.Output == "-" {
 		args.output = os.Stdout
 	} else {
 		filer, err := os.Create(options.Output)

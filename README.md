@@ -1,6 +1,6 @@
 # gopg-anonymiser
 
-_Note that this project is still in early development_ RCL April 2022
+Version 0.1.0
 
 A simple tool for anonymising postgresql dump files from the Postgresql
 `pg_dump` command, which uses row delete and column replacement filters

@@ -202,6 +202,75 @@ func TestStringReplaceFilterWhereFalse(t *testing.T) {
 	}
 }
 
+// Test Nulls
+func TestStringReplaceFilterWhereTrueNULL(t *testing.T) {
+
+	rows = []Row{
+		Row{
+			TableName:   "test",
+			Columns:     []string{"Adam Applebaum", "20", `\N`, "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
+			ColumnNames: []string{"name", "age", "password", "uuid"},
+			LineNo:      1,
+		},
+		Row{
+			TableName:   "test",
+			Columns:     []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
+			ColumnNames: []string{"name", "age", "password", "uuid"},
+			LineNo:      2,
+		},
+		Row{
+			TableName:   "test",
+			Columns:     []string{"Zachary Zebb", "55", "\\N", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
+			ColumnNames: []string{"name", "age", "password", "uuid"},
+			LineNo:      3,
+		},
+	}
+
+	filter, err := newReplaceByColumnFilter(
+		"password",
+		"APassword",
+		map[string]string{"password": "\\N"}, // whereTrue
+		map[string]string{},                  // whereFalse
+	)
+	if err != nil {
+		t.Error("TestStringReplaceFilter failed init")
+	}
+
+	if err := _filterNameTest(filter, "string replace"); err != nil {
+		t.Error(err)
+	}
+
+	expected := []struct {
+		name     string
+		password string
+	}{
+		{name: "Adam Applebaum", password: "APassword"},
+		{name: "Jenny Johnstone", password: "password1"},
+		{name: "Zachary Zebb", password: "APassword"},
+	}
+
+	var rowsCopy []Row
+	copy(rows, rowsCopy)
+	for i, r := range rowsCopy {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		rowPassword, err := ro.colVal("password")
+		if err != nil {
+			t.Errorf("Unexpected colVal error: %w\n", err)
+		}
+
+		if rowPassword != expected[i].password {
+			t.Errorf(
+				"name %s got %s want %s",
+				expected[i].name, rowPassword, expected[i].password,
+			)
+		}
+		t.Logf("%+v\n", ro)
+	}
+}
+
 func TestFileReplaceFilterFail(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")

@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/BurntSushi/toml"
 )
 
 func TestTomlSettings(t *testing.T) {
@@ -48,4 +50,26 @@ func TestTomlSettings(t *testing.T) {
 		t.Errorf("the first users source should start '$2a$06$.wHg4l7'")
 	}
 	t.Logf("%+v\n", toml)
+}
+
+func TestTomlNULL(t *testing.T) {
+
+	var filter Filter
+
+	inlineToml := ` 
+filter = "uuid"
+columns = ["uuid"]
+if = {"notes" = '\N'}
+notif = {"notes" = "\\N"}`
+
+	_, err := toml.Decode(inlineToml, &filter)
+	if err != nil {
+		t.Errorf("could not decode toml filter: %w", err)
+	}
+	if notes, ok := filter.If["notes"]; !ok || notes != `\N` {
+		t.Errorf("null decoding if map failed: ok %t notes %s", ok, notes)
+	}
+	if notes, ok := filter.NotIf["notes"]; !ok || notes != `\N` {
+		t.Errorf("null decoding notif map failed ok %t notes %s", ok, notes)
+	}
 }

@@ -19,16 +19,17 @@ filter = "file replace"
 columns = ["firstname", "lastname"]
 source = "testdata/newnames.txt"
 
-# change the uuid if the notes column is null
 [["public.users"]]
 filter = "uuid"
 columns = ["uuid"]
-# if = {"notes" = "\N"}
-if = {"notes" = "a 'note'"}
 
 [["public.users"]]
 filter = "file replace"
 columns = ["notes"]
-# cycle through 3 example notes
+# cycle through 2 notes in the file
 source = "testdata/newnotes.txt"
+# only replace if the notes column is not null
+# Postgresql NULL columns must be recorded as '\N' or "\\N"
+# notif = {"notes" = '\N'}
+notif = {"notes" = '\N'}
 

@@ -11,6 +11,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrRowMatchFalse reports that a row did not match conditions
+var ErrRowMatchFalse = errors.New("the row did not match the conditions")
+
+// ErrRowNoMatchFalse reports that a row did not match noMatch conditions
+// so if there is a condition of a null column and the inspected column
+// is not null, this will raise ErrRowNoMatchFalse
+var ErrRowNoMatchFalse = errors.New("the row did not match the conditions")
+
 // Row holds a line (represented by columnar data) from a postgresql
 // dump file describing the contents of a postgreql table, together with
 // the name of table, the column names and the line number (excluding
@@ -42,41 +50,41 @@ func (r *Row) colNo(column string) (int, error) {
 	return -1, fmt.Errorf("could not find column %s", column)
 }
 
-// match determines if a row matches all provided conditions provided
+// match determines returns true if a row matche
 // as a map[column]values
-func (r *Row) match(whereTrue map[string]string) (bool, error) {
+func (r *Row) match(whereTrue map[string]string) error {
 	if len(whereTrue) == 0 {
-		return true, nil
+		return nil
 	}
 	for col, val := range whereTrue {
 		colVal, err := r.colVal(col)
 		if err != nil {
-			return false, err
+			return err
 		}
 		if colVal != val {
-			return false, nil
+			return ErrRowMatchFalse
 		}
 	}
-	return true, nil
+	return nil
 }
 
 // notMatch determines if a row does not matches any provided
-// conditionals provided as a map[column]values notMatch == true means
-// the row did not match
-func (r *Row) notMatch(whereFalse map[string]string) (bool, error) {
+// conditionals provided as a map[column]values.
+// notMatch == true means the row did not match
+func (r *Row) notMatch(whereFalse map[string]string) error {
 	if len(whereFalse) == 0 {
-		return false, nil
+		return nil
 	}
 	for col, val := range whereFalse {
 		colVal, err := r.colVal(col)
 		if err != nil {
-			return true, err
+			return err
 		}
 		if colVal == val {
-			return true, nil
+			return ErrRowNoMatchFalse
 		}
 	}
-	return false, nil
+	return nil
 }
 
 // RowFilterer is the interface that any row filter needs to fulfil to
@@ -148,23 +156,26 @@ func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// don't continue processing row if match conditions fail
-	m, err := r.match(f.whereTrue)
-	if err != nil {
+	// don't continue processing if the column doesn't match any of the
+	// whereTrue conditionals
+	err := r.match(f.whereTrue)
+	switch err {
+	case ErrRowMatchFalse:
+		return r, nil
+	case nil:
+	default:
 		return r, fmt.Errorf("string replace match error: %w", err)
 	}
 
-	if m == false {
+	// don't continue processing if the column matches any of the
+	// whereFalse conditionals
+	err = r.notMatch(f.whereFalse)
+	switch err {
+	case ErrRowNoMatchFalse:
 		return r, nil
-	}
-
-	// don't continue processing row if nomatch conditions succeed
-	nm, err := r.notMatch(f.whereFalse)
-	if err != nil {
+	case nil:
+	default:
 		return r, fmt.Errorf("string replace nomatch error: %w", err)
-	}
-	if nm {
-		return r, nil
 	}
 
 	// find the column number to replace if it has not been initialised
@@ -235,22 +246,26 @@ func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// don't continue processing row if match conditions fail
-	m, err := r.match(f.whereTrue)
-	if err != nil {
+	// don't continue processing if the column doesn't match any of the
+	// whereTrue conditionals
+	err := r.match(f.whereTrue)
+	switch err {
+	case ErrRowMatchFalse:
+		return r, nil
+	case nil:
+	default:
 		return r, fmt.Errorf("string replace match error: %w", err)
 	}
-	if m == false {
-		return r, nil
-	}
 
-	// don't continue processing row if nomatch conditions succeed
-	nm, err := r.notMatch(f.whereFalse)
-	if err != nil {
-		return r, fmt.Errorf("string replace nomatch error: %w", err)
-	}
-	if nm {
+	// don't continue processing if the column matches any of the
+	// whereFalse conditionals
+	err = r.notMatch(f.whereFalse)
+	switch err {
+	case ErrRowNoMatchFalse:
 		return r, nil
+	case nil:
+	default:
+		return r, fmt.Errorf("string replace nomatch error: %w", err)
 	}
 
 	// find the column number to replace if it has not been initialised
@@ -307,22 +322,26 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// don't continue processing row if match conditions fail
-	m, err := r.match(f.whereTrue)
-	if err != nil {
+	// don't continue processing if the column doesn't match any of the
+	// whereTrue conditionals
+	err := r.match(f.whereTrue)
+	switch err {
+	case ErrRowMatchFalse:
+		return r, nil
+	case nil:
+	default:
 		return r, fmt.Errorf("string replace match error: %w", err)
 	}
-	if m == false {
-		return r, nil
-	}
 
-	// don't continue processing row if nomatch conditions succeed
-	nm, err := r.notMatch(f.whereFalse)
-	if err != nil {
-		return r, fmt.Errorf("string replace nomatch error: %w", err)
-	}
-	if nm {
+	// don't continue processing if the column matches any of the
+	// whereFalse conditionals
+	err = r.notMatch(f.whereFalse)
+	switch err {
+	case ErrRowNoMatchFalse:
 		return r, nil
+	case nil:
+	default:
+		return r, fmt.Errorf("string replace nomatch error: %w", err)
 	}
 
 	// find the column number to replace between the row r and filter f

@@ -17,7 +17,7 @@ gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test]`
 // Options set the programme flag options
 type Options struct {
 	Settings string `short:"s" long:"settings" required:"true" description:"settings toml file"`
-	Output   string `short:"o" long:"output" description:"output file (otherwise stdout)"`
+	Output   string `short:"o" long:"output" default:"-" description:"output file (otherwise stdout)"`
 	Test     bool   `short:"t" long:"testmode" description:"show only changed lines for testing"`
 	Args     struct {
 		Input string `default:"" description:"input file or stdin"`
@@ -40,7 +40,7 @@ func parseFlags() (args anonArgs, err error) {
 	args.settingsFile = options.Settings
 
 	// open stdin or file for reading
-	if options.Args.Input == "" {
+	if options.Args.Input == "" || options.Args.Input == "-" {
 		args.dumpFile = os.Stdin
 	} else {
 		filer, err := os.Open(options.Args.Input)
@@ -52,7 +52,7 @@ func parseFlags() (args anonArgs, err error) {
 	}
 
 	// open stdout or file for writing
-	if options.Output == "" {
+	if options.Output == "" || options.Args.Input == "-" {
 		args.output = os.Stdout
 	} else {
 		filer, err := os.Create(options.Output)

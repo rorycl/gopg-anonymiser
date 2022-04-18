@@ -76,8 +76,7 @@ filters are provided:
 
 Each filter can be qualified by `If` and `NotIf` filters which determine
 if the filter should be run based on the contents of one or more columns
-in the row. `If` conditionals work as a logical `AND` and `NotIf` as
-logical `OR` statements if more than one conditional is supplied.
+in the row. Both conditionals match if any of their criteria are true.
 
 The order of filters is important. Beware of changing a row ahead of
 using a conditional.
@@ -104,19 +103,19 @@ filter = "file replace"
 columns = ["firstname", "lastname"]
 source = "testdata/newnames.txt"
 
-# change the uuid if the notes column is null
 [["public.users"]]
 filter = "uuid"
 columns = ["uuid"]
-# null
-# if = {"notes" = "\N"}
-if = {"notes" = "a 'note'"}
 
 [["public.users"]]
 filter = "file replace"
 columns = ["notes"]
-# cycle through 3 example notes
+# cycle through 2 notes in the file
 source = "testdata/newnotes.txt"
+# only replace if the notes column is not null
+# Postgresql NULL columns must be recorded as '\N' or "\\N"
+notif = {"notes" = '\N'}
+
 ```
 
 Example
@@ -124,14 +123,14 @@ Example
 This example uses the dump and settings toml files provided in the
 testdata directory.
 
-The events table is effectively truncated.
+The events table contents are removed.
 
 For the users table, the password column is replaced verbatim except for
-user "langoustine", the uuids are regenerated except if the note column
-has the value "a 'note'", . The first name and last name of each user is
-replaced from the file "testdata/newnames.txt", although because there
-are only 5 entries in the file, the 6th entry is recycled. The three
-notes in "testdata/newnotes.txt" are cycled throughout the entries.
+user "langoustine" and all uuids. The first name and last name of each
+user is replaced from the file "testdata/newnames.txt", although because
+there are only 5 entries in the file, the 6th entry is recycled (with
+the firstname "zachary"). The two notes in "testdata/newnotes.txt" are
+cycled through the three entries which are not NULL.
 
 ```
 egrep -A 7 "COPY.*public.users" testdata/pg_dump.sql
@@ -149,12 +148,12 @@ COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 
 COPY example_schema.events (id, flags, data) FROM stdin;
 COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
-1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	6b1b3a33-484a-4870-b6ec-58a8d72fc306	this is the first note
-2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	95ae2b5a-56a6-412d-b7af-e7d0eb1a412f	this is a second note\twith a tab
-3	xavier	xander	$2a$06$cj4Coa76ZPud2KiFW4wPDuTL98N8p4mFjJoV5mJ2Id9.2QiAcJ6bO	db761046-e61e-4b5f-8dc5-64b89ed0dd77	a third note
-4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	d34ce73a-e9e2-4c6f-9b99-dfc9a27f38fe	this is the first note
-5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	46cebc75-8b9a-4666-94f3-8142e73c23d2	this is a second note\twith a tab
-6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	708fd360-34bb-4ea4-8096-71920bfa7809	a third note
+1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	1223421b-23db-4d55-96cf-174f8231c8f3	\N
+2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	7d4d3dfa-10c5-4e3a-9f53-0d94b04a160c	\N
+3	xavier	xander	$2a$06$cj4Coa76ZPud2KiFW4wPDuTL98N8p4mFjJoV5mJ2Id9.2QiAcJ6bO	28571549-9888-413e-bde7-073fc0b0e153	\N
+4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	7486c889-90bc-4391-a209-699d76ac7708	this is a second note\twith a tab
+5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	b34ea5c5-df94-4ff3-8c20-3fb5731b742a	this is the first note
+6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	d0851261-a117-4f7f-a8de-baa6a828092a	this is a second note\twith a tab
 ```
 
 Licence

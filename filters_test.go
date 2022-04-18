@@ -65,6 +65,8 @@ func TestStringReplaceFilterFail(t *testing.T) {
 	_, err := newReplaceByColumnFilter(
 		"",
 		"APassword",
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err == nil {
 		t.Error("newReplaceByColumnFilter init should fail")
@@ -77,6 +79,8 @@ func TestStringReplaceFilter(t *testing.T) {
 	filter, err := newReplaceByColumnFilter(
 		"password",
 		"APassword",
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err != nil {
 		t.Error("TestStringReplaceFilter failed init")
@@ -100,12 +104,104 @@ func TestStringReplaceFilter(t *testing.T) {
 	}
 }
 
+func TestStringReplaceFilterWhereTrue(t *testing.T) {
+
+	filter, err := newReplaceByColumnFilter(
+		"password",
+		"APassword",
+		map[string]string{"name": "Adam Applebaum"}, // whereTrue
+		map[string]string{},                         // whereFalse
+	)
+	if err != nil {
+		t.Error("TestStringReplaceFilter failed init")
+	}
+
+	if err := _filterNameTest(filter, "string replace"); err != nil {
+		t.Error(err)
+	}
+
+	expected := []struct {
+		name     string
+		password string
+	}{
+		{name: "Adam Applebaum", password: "APassword"},
+		{name: "Jenny Johnstone", password: "password1"},
+		{name: "Zachary Zebb", password: "qwerty yuiop"},
+	}
+
+	for i, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		rowPassword, err := ro.colVal("password")
+		if err != nil {
+			t.Errorf("Unexpected colVal error: %w\n", err)
+		}
+
+		if rowPassword != expected[i].password {
+			t.Errorf(
+				"name %s got %s want %s",
+				expected[i].name, rowPassword, expected[i].password,
+			)
+		}
+		t.Logf("%+v\n", ro)
+	}
+}
+
+func TestStringReplaceFilterWhereFalse(t *testing.T) {
+
+	filter, err := newReplaceByColumnFilter(
+		"password",
+		"APassword",
+		map[string]string{}, // whereTrue
+		map[string]string{"name": "Adam Applebaum"}, // whereFalse
+	)
+	if err != nil {
+		t.Error("TestStringReplaceFilter failed init")
+	}
+
+	if err := _filterNameTest(filter, "string replace"); err != nil {
+		t.Error(err)
+	}
+
+	expected := []struct {
+		name     string
+		password string
+	}{
+		{name: "Adam Applebaum", password: "zut alors"},
+		{name: "Jenny Johnstone", password: "APassword"},
+		{name: "Zachary Zebb", password: "APassword"},
+	}
+
+	for i, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		rowPassword, err := ro.colVal("password")
+		if err != nil {
+			t.Errorf("Unexpected colVal error: %w\n", err)
+		}
+
+		if rowPassword != expected[i].password {
+			t.Errorf(
+				"name %s got %s want %s",
+				expected[i].name, rowPassword, expected[i].password,
+			)
+		}
+		t.Logf("%+v\n", ro)
+	}
+}
+
 func TestFileReplaceFilterFail(t *testing.T) {
 
 	reader := strings.NewReader("replace1\nreplace2")
 	_, err := newFileByColumnFilter(
 		"",
 		reader,
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err == nil {
 		t.Error("fileByColumnFilter init should fail")
@@ -119,6 +215,8 @@ func TestFileReplaceFilterTabFail(t *testing.T) {
 	_, err := newFileByColumnFilter(
 		"name",
 		reader,
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err == nil {
 		t.Error("fileByColumnFilter init should fail with tab fail")
@@ -132,6 +230,8 @@ func TestFileReplaceFilter(t *testing.T) {
 	filter, err := newFileByColumnFilter(
 		"name",
 		reader,
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err != nil {
 		t.Error("TestFileReplaceFilter failed init")
@@ -161,9 +261,88 @@ func TestFileReplaceFilter(t *testing.T) {
 	}
 }
 
+func TestFileReplaceFilterWhereTrue(t *testing.T) {
+
+	reader := strings.NewReader("replace1\nreplace2")
+	filter, err := newFileByColumnFilter(
+		"name",
+		reader,
+		map[string]string{"age": "20"}, // whereTrue
+		map[string]string{},            // whereFalse
+	)
+	if err != nil {
+		t.Error("TestFileReplaceFilter failed init")
+	}
+
+	if err := _filterNameTest(filter, "file replace"); err != nil {
+		t.Error(err)
+	}
+
+	replacements := map[int]string{
+		1: "replace1",
+		2: "Jenny Johnstone",
+		3: "Zachary Zebb",
+	}
+
+	for _, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		if ro.Columns[0] != replacements[r.LineNo] {
+			t.Errorf("Column 0 on Line %d with val %s != %s",
+				r.LineNo, ro.Columns[0], replacements[r.LineNo],
+			)
+		}
+		t.Logf("%+v\n", ro)
+	}
+}
+
+func TestFileReplaceFilterWhereFalse(t *testing.T) {
+
+	reader := strings.NewReader("replace1\nreplace2")
+	filter, err := newFileByColumnFilter(
+		"name",
+		reader,
+		map[string]string{},            // whereTrue
+		map[string]string{"age": "20"}, // whereFalse
+	)
+	if err != nil {
+		t.Error("TestFileReplaceFilter failed init")
+	}
+
+	if err := _filterNameTest(filter, "file replace"); err != nil {
+		t.Error(err)
+	}
+
+	replacements := map[int]string{
+		1: "Adam Applebaum",
+		2: "replace2",
+		3: "replace1",
+	}
+
+	for _, r := range rows {
+		ro, err := filter.Filter(r)
+		if err != nil {
+			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+		}
+		if ro.Columns[0] != replacements[r.LineNo] {
+			t.Errorf("Column 0 on Line %d with val %s != %s",
+				r.LineNo, ro.Columns[0], replacements[r.LineNo],
+			)
+		}
+		t.Logf("%+v\n", ro)
+	}
+}
+
 func TestUUIDReplaceFilter(t *testing.T) {
 
-	filter, err := NewUUIDFilter([]string{"uuid"})
+	filter, err := NewUUIDFilter(
+		[]string{"uuid"},
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
+	)
+
 	if err != nil {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
@@ -189,6 +368,8 @@ func TestAllBasicFilters(t *testing.T) {
 	filter, err := newReplaceByColumnFilter(
 		"password",
 		"APassword",
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err != nil {
 		t.Error("unexpected filter error")
@@ -197,6 +378,8 @@ func TestAllBasicFilters(t *testing.T) {
 	filter2, err := newFileByColumnFilter(
 		"name",
 		reader,
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err != nil {
 		t.Error("unexpected filter2 error")
@@ -205,9 +388,15 @@ func TestAllBasicFilters(t *testing.T) {
 	filter3, err := newReplaceByColumnFilter(
 		"age",
 		"17.5",
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 
-	filter4, err := NewUUIDFilter([]string{"uuid"})
+	filter4, err := NewUUIDFilter(
+		[]string{"uuid"},
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
+	)
 	if err != nil {
 		t.Error("unexpected filter4 error")
 	}
@@ -266,6 +455,8 @@ func TestMultiStringReplaceFilter(t *testing.T) {
 	filter, err := NewReplaceFilter(
 		[]string{"password", "name"},
 		[]string{"new password", "Carol Carnute"},
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err != nil {
 		t.Error("TestMultiStringReplaceFilter failed init")
@@ -300,6 +491,8 @@ Norris Naughton	31	dba2468`)
 	_, err := NewFileFilter(
 		[]string{"name", "age"},
 		reader,
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err == nil {
 		t.Errorf("TestMultiFileReplaceFilter should fail with too many file columns")
@@ -316,6 +509,8 @@ Norris Naughton	31	dba2468`)
 	filter, err := NewFileFilter(
 		[]string{"name", "age", "password"},
 		reader,
+		map[string]string{}, // whereTrue
+		map[string]string{}, // whereFalse
 	)
 	if err != nil {
 		t.Errorf("TestMultiFileReplaceFilter failed init: %s", err)

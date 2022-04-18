@@ -60,29 +60,31 @@ Use the `-t` (testmode) flag to only show altered rows.
 A toml file is used to describe tables that should be anonymised. For
 each table to be anonymised one or more filters may be provided.
 
-Presently, apart from the row delete filter, three column replacement
+Presently, apart from the row **delete** filter, three column replacement
 filters are provided:
 
-- *uuid* replaces one or more columns with a new uuid
+- **uuid** replaces one or more columns with a new uuid
 
-- *string replace* replaces the data in one or more columns with
+- **string replace** replaces the data in one or more columns with
   replacement values
 
-- *file replace* replaces the data in one or more columns with
+- **file replace** replaces the data in one or more columns with
   corresponding lines in the source file. If the source file is
   exhausted, cycle the inputs starting from the first line of the
   source.
 
+Each filter can be qualified by `If` and `NotIf` filters which determine
+if the filter should be run based on the contents of one or more columns
+in the row. `If` conditionals work as a logical `AND` and `NotIf` as
+logical `OR` statements if more than one conditional is supplied.
+
+The order of filters is important. Beware of changing a row ahead of
+using a conditional.
+
+
 ```toml
 [["example_schema.events"]]
 filter = "delete"
-
-[["public.users"]]
-filter = "file replace"
-# column names must equal those in the dump file "COPY" load header
-# the number of columns in the source must equal the columns listed
-columns = ["firstname", "lastname"]
-source = "testdata/newnames.txt"
 
 [["public.users"]]
 filter = "string replace"
@@ -92,10 +94,23 @@ columns = ["password"]
 # the number of replacements must equal the number of columns
 # give all users the same password
 replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
+# don't replace if lastname column has the value "langoustine"
+notif = {"lastname" = "langoustine"}
 
+[["public.users"]]
+filter = "file replace"
+# column names must equal those in the dump file "COPY" load header
+# the number of columns in the source must equal the columns listed
+columns = ["firstname", "lastname"]
+source = "testdata/newnames.txt"
+
+# change the uuid if the notes column is null
 [["public.users"]]
 filter = "uuid"
 columns = ["uuid"]
+# null
+# if = {"notes" = "\N"}
+if = {"notes" = "a 'note'"}
 
 [["public.users"]]
 filter = "file replace"
@@ -109,10 +124,14 @@ source = "testdata/newnotes.txt"
 This example uses the dump and settings toml files provided in the
 testdata directory.
 
-The password column is replaced verbatim, the uuids are regenerated and
-the events table is effectively truncated. The user list is cycled for
-the 6th entry as there are only 5 entries in `testdata/newnames.txt`,
-and the three notes in `testdata/newnotes.txt` are similarly cycled.
+The events table is effectively truncated.
+
+For the users table, the password column is replaced verbatim except for
+user "langoustine", the uuids are regenerated except if the note column
+has the value "a 'note'", . The first name and last name of each user is
+replaced from the file "testdata/newnames.txt", although because there
+are only 5 entries in the file, the 6th entry is recycled. The three
+notes in "testdata/newnotes.txt" are cycled throughout the entries.
 
 ```
 egrep -A 7 "COPY.*public.users" testdata/pg_dump.sql
@@ -130,12 +149,12 @@ COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 
 COPY example_schema.events (id, flags, data) FROM stdin;
 COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
-1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	9c88e633-29a2-4d3d-9b82-a9203b0e67a0	this is the first note
-2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	cd3f24e7-24d5-4a74-8820-e9abb62a62e6	this is a second note\twith a tab
-3	xavier	xander	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	69d90d89-9214-4b90-9c68-d7ec8cfec52c	a third note
-4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	4753a95f-df28-4ca0-8d6a-f7adb65f4d23	this is the first note
-5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	90f77e56-3f28-4eaf-b6e8-18ce45b11588	this is a second note\twith a tab
-6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	f8d84316-90e0-43af-85fc-d6574f8c6a60	a third note
+1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	6b1b3a33-484a-4870-b6ec-58a8d72fc306	this is the first note
+2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	95ae2b5a-56a6-412d-b7af-e7d0eb1a412f	this is a second note\twith a tab
+3	xavier	xander	$2a$06$cj4Coa76ZPud2KiFW4wPDuTL98N8p4mFjJoV5mJ2Id9.2QiAcJ6bO	db761046-e61e-4b5f-8dc5-64b89ed0dd77	a third note
+4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	d34ce73a-e9e2-4c6f-9b99-dfc9a27f38fe	this is the first note
+5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	46cebc75-8b9a-4666-94f3-8142e73c23d2	this is a second note\twith a tab
+6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	708fd360-34bb-4ea4-8096-71920bfa7809	a third note
 ```
 
 ## Licence

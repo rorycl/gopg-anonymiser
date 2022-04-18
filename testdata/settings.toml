@@ -30,6 +30,5 @@ columns = ["notes"]
 source = "testdata/newnotes.txt"
 # only replace if the notes column is not null
 # Postgresql NULL columns must be recorded as '\N' or "\\N"
-# notif = {"notes" = '\N'}
 notif = {"notes" = '\N'}
 

@@ -50,41 +50,20 @@ func (r *Row) colNo(column string) (int, error) {
 	return -1, fmt.Errorf("could not find column %s", column)
 }
 
-// match determines returns true if a row matche
-// as a map[column]values
-func (r *Row) match(whereTrue map[string]string) error {
-	if len(whereTrue) == 0 {
-		return nil
-	}
-	for col, val := range whereTrue {
+// match determines returns true if a row column matches any
+// map[column]values
+func (r *Row) match(filterName string, where map[string]string) bool {
+	for col, val := range where {
 		colVal, err := r.colVal(col)
 		if err != nil {
-			return err
-		}
-		if colVal != val {
-			return ErrRowMatchFalse
-		}
-	}
-	return nil
-}
-
-// notMatch determines if a row does not matches any provided
-// conditionals provided as a map[column]values.
-// notMatch == true means the row did not match
-func (r *Row) notMatch(whereFalse map[string]string) error {
-	if len(whereFalse) == 0 {
-		return nil
-	}
-	for col, val := range whereFalse {
-		colVal, err := r.colVal(col)
-		if err != nil {
-			return err
+			continue
 		}
 		if colVal == val {
-			return ErrRowNoMatchFalse
+			return true
 		}
 	}
-	return nil
+
+	return false
 }
 
 // RowFilterer is the interface that any row filter needs to fulfil to
@@ -156,26 +135,13 @@ func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// don't continue processing if the column doesn't match any of the
-	// whereTrue conditionals
-	err := r.match(f.whereTrue)
-	switch err {
-	case ErrRowMatchFalse:
+	// if no match for whereTrue conditions, return
+	if len(f.whereTrue) > 0 && r.match(f.Typer, f.whereTrue) != true {
 		return r, nil
-	case nil:
-	default:
-		return r, fmt.Errorf("string replace match error: %w", err)
 	}
-
-	// don't continue processing if the column matches any of the
-	// whereFalse conditionals
-	err = r.notMatch(f.whereFalse)
-	switch err {
-	case ErrRowNoMatchFalse:
+	// if match for whereFalse conditions, return
+	if len(f.whereFalse) > 0 && r.match(f.Typer, f.whereFalse) == true {
 		return r, nil
-	case nil:
-	default:
-		return r, fmt.Errorf("string replace nomatch error: %w", err)
 	}
 
 	// find the column number to replace if it has not been initialised
@@ -202,6 +168,7 @@ type fileByColumnFilter struct {
 	Replacements []string
 	whereTrue    map[string]string
 	whereFalse   map[string]string
+	matches      int
 }
 
 // newFileByColumnFilter makes a new fileByColumnFilter, which should
@@ -246,26 +213,13 @@ func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// don't continue processing if the column doesn't match any of the
-	// whereTrue conditionals
-	err := r.match(f.whereTrue)
-	switch err {
-	case ErrRowMatchFalse:
+	// if no match for whereTrue conditions, return
+	if len(f.whereTrue) > 0 && r.match(f.Typer, f.whereTrue) != true {
 		return r, nil
-	case nil:
-	default:
-		return r, fmt.Errorf("string replace match error: %w", err)
 	}
-
-	// don't continue processing if the column matches any of the
-	// whereFalse conditionals
-	err = r.notMatch(f.whereFalse)
-	switch err {
-	case ErrRowNoMatchFalse:
+	// if match for whereFalse conditions, return
+	if len(f.whereFalse) > 0 && r.match(f.Typer, f.whereFalse) == true {
 		return r, nil
-	case nil:
-	default:
-		return r, fmt.Errorf("string replace nomatch error: %w", err)
 	}
 
 	// find the column number to replace if it has not been initialised
@@ -322,26 +276,13 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	// don't continue processing if the column doesn't match any of the
-	// whereTrue conditionals
-	err := r.match(f.whereTrue)
-	switch err {
-	case ErrRowMatchFalse:
+	// if no match for whereTrue conditions, return
+	if len(f.whereTrue) > 0 && r.match(f.Typer, f.whereTrue) != true {
 		return r, nil
-	case nil:
-	default:
-		return r, fmt.Errorf("string replace match error: %w", err)
 	}
-
-	// don't continue processing if the column matches any of the
-	// whereFalse conditionals
-	err = r.notMatch(f.whereFalse)
-	switch err {
-	case ErrRowNoMatchFalse:
+	// if match for whereFalse conditions, return
+	if len(f.whereFalse) > 0 && r.match(f.Typer, f.whereFalse) == true {
 		return r, nil
-	case nil:
-	default:
-		return r, fmt.Errorf("string replace nomatch error: %w", err)
 	}
 
 	// find the column number to replace between the row r and filter f
@@ -468,7 +409,7 @@ func NewFileFilter(columns []string, fh io.Reader, whereTrue, whereFalse map[str
 	}
 	for i, c := range f.Columns {
 		replReader := bytes.NewReader(f.Replacements[i].Bytes())
-		cf, err := newFileByColumnFilter(c, replReader, whereFalse, whereTrue)
+		cf, err := newFileByColumnFilter(c, replReader, whereTrue, whereFalse)
 		if err != nil {
 			return f, fmt.Errorf("multi file init error %w", err)
 		}

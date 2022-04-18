@@ -101,9 +101,9 @@ func TestAnonymiseOK(t *testing.T) {
 	if count != 2 {
 		t.Errorf("count of zachary string not 2, got %d", count)
 	}
-	count = strings.Count(buffer.String(), "a third note")
+	count = strings.Count(buffer.String(), "this is a second note")
 	if count != 2 {
-		t.Errorf("count of 'a third note' not 2, got %d", count)
+		t.Errorf("count of second note not 2, got %d", count)
 	}
 
 	t.Log(buffer.String())

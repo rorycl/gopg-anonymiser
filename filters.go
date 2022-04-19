@@ -11,61 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// ErrRowMatchFalse reports that a row did not match conditions
-var ErrRowMatchFalse = errors.New("the row did not match the conditions")
-
-// ErrRowNoMatchFalse reports that a row did not match noMatch conditions
-// so if there is a condition of a null column and the inspected column
-// is not null, this will raise ErrRowNoMatchFalse
-var ErrRowNoMatchFalse = errors.New("the row did not match the conditions")
-
-// Row holds a line (represented by columnar data) from a postgresql
-// dump file describing the contents of a postgreql table, together with
-// the name of table, the column names and the line number (excluding
-// header) within the table using a 1-indexed count
-type Row struct {
-	TableName   string
-	Columns     []string
-	ColumnNames []string
-	LineNo      int
-}
-
-// colVal gets the value of a column
-func (r *Row) colVal(column string) (string, error) {
-	for i, cn := range r.ColumnNames {
-		if cn == column {
-			return r.Columns[i], nil
-		}
-	}
-	return "", fmt.Errorf("column %s not found", column)
-}
-
-// colno returns the ColumnNames offset of the named column, else an error
-func (r *Row) colNo(column string) (int, error) {
-	for i, c := range r.ColumnNames {
-		if c == column {
-			return i, nil
-		}
-	}
-	return -1, fmt.Errorf("could not find column %s", column)
-}
-
-// match determines returns true if a row column matches any
-// map[column]values
-func (r *Row) match(filterName string, where map[string]string) bool {
-	for col, val := range where {
-		colVal, err := r.colVal(col)
-		if err != nil {
-			continue
-		}
-		if colVal == val {
-			return true
-		}
-	}
-
-	return false
-}
-
 // RowFilterer is the interface that any row filter needs to fulfil to
 // filter a row, perhaps on a column basis, returning a row to allow
 // chaining of filters
@@ -135,7 +80,7 @@ func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
-	if r.LineNo == 0 {
+	if r.lineNo == 0 {
 		return r, nil
 	}
 
@@ -208,7 +153,7 @@ func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
-	if r.LineNo == 0 {
+	if r.lineNo == 0 {
 		return r, nil
 	}
 
@@ -230,7 +175,7 @@ func (f fileByColumnFilter) Filter(r Row) (Row, error) {
 	// replace the column contents with the replacement equalling the (1
 	// indexed) row number of the input with the modulo of the length of
 	// the replacements
-	r.Columns[colNo] = f.Replacements[(r.LineNo-1)%len(f.Replacements)]
+	r.Columns[colNo] = f.Replacements[(r.lineNo-1)%len(f.Replacements)]
 	return r, nil
 }
 
@@ -266,7 +211,7 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
-	if r.LineNo == 0 {
+	if r.lineNo == 0 {
 		return r, nil
 	}
 
@@ -339,7 +284,7 @@ func NewReplaceFilter(columns, replacements []string, whereTrue, whereFalse map[
 func (f ReplaceFilter) Filter(r Row) (Row, error) {
 	// if there is no line number the previous filter may have stopped
 	// processing
-	if r.LineNo == 0 {
+	if r.lineNo == 0 {
 		return r, nil
 	}
 	for _, f := range f.filters {
@@ -407,7 +352,7 @@ func NewFileFilter(columns []string, fh io.Reader, whereTrue, whereFalse map[str
 func (f FileFilter) Filter(r Row) (Row, error) {
 	// if there is no line number the previous filter may have stopped
 	// processing
-	if r.LineNo == 0 {
+	if r.lineNo == 0 {
 		return r, nil
 	}
 	for _, f := range f.filters {

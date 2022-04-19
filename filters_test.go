@@ -11,24 +11,26 @@ import (
 var rows []Row
 
 func init() {
+	dt := &DumpTable{
+		TableName:   "test",
+		ColumnNames: []string{"name", "age", "password", "uuid"},
+		initialised: true,
+	}
 	rows = []Row{
 		Row{
-			TableName:   "test",
-			Columns:     []string{"Adam Applebaum", "20", "zut alors", "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
-			ColumnNames: []string{"name", "age", "password", "uuid"},
-			LineNo:      1,
+			DumpTable: dt,
+			Columns:   []string{"Adam Applebaum", "20", "zut alors", "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
+			lineNo:    1,
 		},
 		Row{
-			TableName:   "test",
-			Columns:     []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
-			ColumnNames: []string{"name", "age", "password", "uuid"},
-			LineNo:      2,
+			DumpTable: dt,
+			Columns:   []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
+			lineNo:    2,
 		},
 		Row{
-			TableName:   "test",
-			Columns:     []string{"Zachary Zebb", "55", "qwerty yuiop", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
-			ColumnNames: []string{"name", "age", "password", "uuid"},
-			LineNo:      3,
+			DumpTable: dt,
+			Columns:   []string{"Zachary Zebb", "55", "qwerty yuiop", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
+			lineNo:    3,
 		},
 	}
 }
@@ -97,11 +99,11 @@ func TestStringReplaceFilter(t *testing.T) {
 	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		if ro.Columns[2] != filter.Replacement {
 			t.Errorf("Column 2 on Line %d with val %s != %s",
-				r.LineNo, ro.Columns[2], filter.Replacement,
+				r.lineNo, ro.Columns[2], filter.Replacement,
 			)
 		}
 		t.Logf("%+v\n", ro)
@@ -138,7 +140,7 @@ func TestStringReplaceFilterWhereTrue(t *testing.T) {
 	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		rowPassword, err := ro.colVal("password")
 		if err != nil {
@@ -185,7 +187,7 @@ func TestStringReplaceFilterWhereFalse(t *testing.T) {
 	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		rowPassword, err := ro.colVal("password")
 		if err != nil {
@@ -205,24 +207,26 @@ func TestStringReplaceFilterWhereFalse(t *testing.T) {
 // Test Nulls
 func TestStringReplaceFilterWhereTrueNULL(t *testing.T) {
 
+	dt := &DumpTable{
+		TableName:   "test",
+		ColumnNames: []string{"name", "age", "password", "uuid"},
+		initialised: true,
+	}
 	rows = []Row{
 		Row{
-			TableName:   "test",
-			Columns:     []string{"Adam Applebaum", "20", `\N`, "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
-			ColumnNames: []string{"name", "age", "password", "uuid"},
-			LineNo:      1,
+			DumpTable: dt,
+			Columns:   []string{"Adam Applebaum", "20", `\N`, "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
+			lineNo:    1,
 		},
 		Row{
-			TableName:   "test",
-			Columns:     []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
-			ColumnNames: []string{"name", "age", "password", "uuid"},
-			LineNo:      2,
+			DumpTable: dt,
+			Columns:   []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
+			lineNo:    2,
 		},
 		Row{
-			TableName:   "test",
-			Columns:     []string{"Zachary Zebb", "55", "\\N", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
-			ColumnNames: []string{"name", "age", "password", "uuid"},
-			LineNo:      3,
+			DumpTable: dt,
+			Columns:   []string{"Zachary Zebb", "55", "\\N", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
+			lineNo:    3,
 		},
 	}
 
@@ -254,7 +258,7 @@ func TestStringReplaceFilterWhereTrueNULL(t *testing.T) {
 	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		rowPassword, err := ro.colVal("password")
 		if err != nil {
@@ -329,11 +333,11 @@ func TestFileReplaceFilter(t *testing.T) {
 	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
-		if ro.Columns[0] != replacements[r.LineNo] {
+		if ro.Columns[0] != replacements[r.lineNo] {
 			t.Errorf("Column 0 on Line %d with val %s != %s",
-				r.LineNo, ro.Columns[0], replacements[r.LineNo],
+				r.lineNo, ro.Columns[0], replacements[r.lineNo],
 			)
 		}
 		t.Logf("%+v\n", ro)
@@ -368,11 +372,11 @@ func TestFileReplaceFilterWhereTrue(t *testing.T) {
 	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
-		if ro.Columns[0] != replacements[r.LineNo] {
+		if ro.Columns[0] != replacements[r.lineNo] {
 			t.Errorf("Column 0 on Line %d with val %s != %s",
-				r.LineNo, ro.Columns[0], replacements[r.LineNo],
+				r.lineNo, ro.Columns[0], replacements[r.lineNo],
 			)
 		}
 		t.Logf("%+v\n", ro)
@@ -407,11 +411,11 @@ func TestFileReplaceFilterWhereFalse(t *testing.T) {
 	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
-		if ro.Columns[0] != replacements[r.LineNo] {
+		if ro.Columns[0] != replacements[r.lineNo] {
 			t.Errorf("Column 0 on Line %d with val %s != %s",
-				r.LineNo, ro.Columns[0], replacements[r.LineNo],
+				r.lineNo, ro.Columns[0], replacements[r.lineNo],
 			)
 		}
 		t.Logf("%+v\n", ro)
@@ -436,7 +440,7 @@ func TestUUIDReplaceFilter(t *testing.T) {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		if uuidOld == ro.Columns[3] {
 			t.Errorf("Old uuid == new %s", uuidOld)
@@ -464,7 +468,7 @@ func TestUUIDReplaceFilterWhereTrue(t *testing.T) {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		// third row should keep the same uuid
 		if i == 2 {
@@ -497,7 +501,7 @@ func TestUUIDReplaceFilterWhereFalse(t *testing.T) {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		// third row should keep the same uuid
 		if i == 2 {
@@ -583,15 +587,15 @@ func TestAllBasicFilters(t *testing.T) {
 			if err != nil {
 				t.Errorf(
 					"Error filter %s at row linenumber %d: %v\n",
-					f.FilterName(), r.LineNo, err,
+					f.FilterName(), r.lineNo, err,
 				)
 			}
 		}
 		for i, c := range ro.Columns {
 			// need to skip uuid test
 			if ro.ColumnNames[i] != "uuid" {
-				if c != expected[r.LineNo-1][i] {
-					t.Errorf("%v != %v", c, expected[r.LineNo-1][i])
+				if c != expected[r.lineNo-1][i] {
+					t.Errorf("%v != %v", c, expected[r.lineNo-1][i])
 				}
 			} else {
 				_, err := uuid.Parse(c)
@@ -625,7 +629,7 @@ func TestMultiStringReplaceFilter(t *testing.T) {
 	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 
 		if !(ro.Columns[0] == "Carol Carnute" && ro.Columns[2] == "new password") {
@@ -685,7 +689,7 @@ Norris Naughton	31	dba2468`)
 	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
-			t.Errorf("Multifile error on row linenumber %d: %v\n", r.LineNo, err)
+			t.Errorf("Multifile error on row linenumber %d: %v\n", r.lineNo, err)
 		}
 		for ii, c := range ro.Columns {
 			if c != expected[i][ii] {

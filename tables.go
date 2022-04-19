@@ -84,3 +84,58 @@ func (dt *DumpTable) LineSplitter(line string) ([]string, bool) {
 func (dt *DumpTable) Inited() bool {
 	return dt.initialised
 }
+
+// Row holds a line (represented by columnar data) from a postgresql
+// dump file describing the contents of a postgreql table, together with
+// the name of table, the column names and the line number (excluding
+// header) within the table using a 1-indexed count
+type Row struct {
+	*DumpTable
+	Columns []string
+	lineNo  int
+}
+
+// NewRow constructs a new row
+func NewRow(dt *DumpTable, columns []string, lineNo int) Row {
+	return Row{
+		DumpTable: dt,
+		Columns:   columns,
+		lineNo:    lineNo,
+	}
+}
+
+// colVal gets the value of a column
+func (r *Row) colVal(column string) (string, error) {
+	for i, cn := range r.ColumnNames {
+		if cn == column {
+			return r.Columns[i], nil
+		}
+	}
+	return "", fmt.Errorf("column %s not found", column)
+}
+
+// colno returns the ColumnNames offset of the named column, else an error
+func (r *Row) colNo(column string) (int, error) {
+	for i, c := range r.ColumnNames {
+		if c == column {
+			return i, nil
+		}
+	}
+	return -1, fmt.Errorf("could not find column %s", column)
+}
+
+// match determines returns true if a row column matches any
+// map[column]values
+func (r *Row) match(filterName string, where map[string]string) bool {
+	for col, val := range where {
+		colVal, err := r.colVal(col)
+		if err != nil {
+			continue
+		}
+		if colVal == val {
+			return true
+		}
+	}
+
+	return false
+}

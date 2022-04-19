@@ -167,12 +167,8 @@ func Anonymise(args anonArgs) error {
 			}
 
 			// make rows
-			row := Row{
-				TableName:   dt.TableName,
-				Columns:     columns,
-				ColumnNames: dt.ColumnNames,
-				LineNo:      lineNo,
-			}
+			row := NewRow(dt, columns, lineNo)
+
 			// filter rows
 			for _, f := range dtFilters {
 				row, err = f.Filter(row)
@@ -181,7 +177,7 @@ func Anonymise(args anonArgs) error {
 				}
 			}
 			// convert columns back to t unless the Row has been deleted
-			if row.LineNo == 0 {
+			if row.lineNo == 0 {
 				t = "row deleted"
 			} else {
 				t = strings.Join(row.Columns, "\t")

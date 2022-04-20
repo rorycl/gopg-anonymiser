@@ -10,7 +10,7 @@ import (
 // DumpTable  describes metadata about a table from pg_dump file
 type DumpTable struct {
 	TableName   string
-	ColumnNames []string
+	columnNames []string
 	lines       int
 	initialised bool
 }
@@ -20,6 +20,17 @@ var ErrNoDumpTable = errors.New("not a dump table")
 
 // ErrNotInterestingTable reports that a dump table wasn't interesting
 var ErrNotInterestingTable = errors.New("not an interesting dump table")
+
+// DumpTabler is an interface abstracting the functions of a DumpTable
+// and ReferenceTable so that that two can be used interchangeably
+type DumpTabler interface {
+	// a line splitting function
+	LineSplitter(line string) ([]string, bool)
+	// show if the table has been initialised
+	Inited() bool
+	// list Columns
+	ColumnNames() []string
+}
 
 // copy_regex is a regular expression to grab a COPY header from a
 // pg_dump table COPY block
@@ -44,7 +55,7 @@ func NewDumpTable(copyLine string, interestingTables []string) (*DumpTable, erro
 	}
 
 	d.TableName = matches[1]
-	d.ColumnNames = strings.Split(matches[2], ", ")
+	d.columnNames = strings.Split(matches[2], ", ")
 
 	// return early unless the table name is in interestingTables
 	ok := false
@@ -85,28 +96,46 @@ func (dt *DumpTable) Inited() bool {
 	return dt.initialised
 }
 
+// ColumnNames returns the DumpTable's column names
+func (dt *DumpTable) ColumnNames() []string {
+	return dt.columnNames
+}
+
+// ReferenceDumpTable is a Dump Table that keeps a record of its
+// original values for back-referencing from other table rows. This
+// allows for simple joins to be followed, for example if a users table
+// is recorded in a RecordedDumpTable and a user has id 22 and the data
+// in that row has been anonymised, any original or new valies in what
+// was row 22 can be referenced
+type ReferenceDumpTable struct {
+	DumpTable
+	originalData   []Row
+	latestData     []Row
+	recordedInited bool
+}
+
 // Row holds a line (represented by columnar data) from a postgresql
 // dump file describing the contents of a postgreql table, together with
 // the name of table, the column names and the line number (excluding
 // header) within the table using a 1-indexed count
 type Row struct {
-	*DumpTable
+	DumpTabler
 	Columns []string
 	lineNo  int
 }
 
 // NewRow constructs a new row
-func NewRow(dt *DumpTable, columns []string, lineNo int) Row {
+func NewRow(dt DumpTabler, columns []string, lineNo int) Row {
 	return Row{
-		DumpTable: dt,
-		Columns:   columns,
-		lineNo:    lineNo,
+		DumpTabler: dt,
+		Columns:    columns,
+		lineNo:     lineNo,
 	}
 }
 
 // colVal gets the value of a column
 func (r *Row) colVal(column string) (string, error) {
-	for i, cn := range r.ColumnNames {
+	for i, cn := range r.ColumnNames() {
 		if cn == column {
 			return r.Columns[i], nil
 		}
@@ -116,7 +145,7 @@ func (r *Row) colVal(column string) (string, error) {
 
 // colno returns the ColumnNames offset of the named column, else an error
 func (r *Row) colNo(column string) (int, error) {
-	for i, c := range r.ColumnNames {
+	for i, c := range r.ColumnNames() {
 		if c == column {
 			return i, nil
 		}

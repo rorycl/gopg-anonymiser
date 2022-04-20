@@ -91,8 +91,8 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 type anonArgs struct {
 	// a postgresql dump file via either os.Stdin or a file
 	dumpFile io.Reader
-	// a toml settings file
-	settingsFile string
+	// a toml settings string
+	settingsToml string
 	// output to either os.Stdout or a file
 	output io.Writer
 	// only show changed tables inthe output
@@ -103,9 +103,9 @@ type anonArgs struct {
 func Anonymise(args anonArgs) error {
 
 	// load settings
-	settings, err := LoadToml(args.settingsFile)
+	settings, err := LoadToml(args.settingsToml)
 	if err != nil {
-		return fmt.Errorf("settings file load error %s", err)
+		return fmt.Errorf("settings load error %s", err)
 	}
 
 	interestingTables := []string{}

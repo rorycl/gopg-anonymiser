@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -22,9 +23,14 @@ func TestAnonymiseNoFail(t *testing.T) {
 	}
 	defer os.Remove(settingsFile.Name())
 
+	tomlString, err := io.ReadAll(settingsFile)
+	if err != nil {
+		t.Error("could not read temp file")
+	}
+
 	args := anonArgs{
 		dumpFile:     dumpFile,
-		settingsFile: settingsFile.Name(),
+		settingsToml: string(tomlString),
 		output:       os.Stdout,
 		changedOnly:  false,
 	}
@@ -43,11 +49,11 @@ func TestAnonymiseFail(t *testing.T) {
 	}
 	defer os.Remove(dumpFile.Name())
 
-	settingsFile := "/tmp/ghi/jkl.toml"
+	settingsToml := "xxx yyyy zzz"
 
 	args := anonArgs{
 		dumpFile:     dumpFile,
-		settingsFile: settingsFile,
+		settingsToml: settingsToml,
 		output:       os.Stdout,
 		changedOnly:  false,
 	}
@@ -67,13 +73,16 @@ func TestAnonymiseOK(t *testing.T) {
 		t.Errorf("Could not open test dump file %s, %s", dumpFile, err)
 	}
 
-	settingsFile := "testdata/settings.toml"
+	tomlString, err := os.ReadFile("testdata/settings.toml")
+	if err != nil {
+		t.Errorf("could not read settings file: %w", err)
+	}
 
 	buffer := bytes.NewBuffer(nil)
 
 	args := anonArgs{
 		dumpFile:     df,
-		settingsFile: settingsFile,
+		settingsToml: string(tomlString),
 		output:       buffer,
 		changedOnly:  true,
 	}

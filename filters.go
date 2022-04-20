@@ -226,7 +226,7 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 
 	// find the column number to replace between the row r and filter f
 	changed := 0
-	for i, rc := range r.ColumnNames {
+	for i, rc := range r.ColumnNames() {
 		for _, cn := range f.Columns {
 			if rc == cn {
 				changed++

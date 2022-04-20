@@ -1,17 +1,25 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/BurntSushi/toml"
 )
 
+var testSettings = "testdata/settings.toml"
+
 func TestTomlSettings(t *testing.T) {
 
-	toml, err := LoadToml("testdata/settings.toml")
+	filer, err := os.ReadFile(testSettings)
 	if err != nil {
-		t.Errorf("Could not parse yaml %v", err)
+		t.Errorf("could not read test file: %s", err)
+	}
+
+	toml, err := LoadToml(string(filer))
+	if err != nil {
+		t.Errorf("Could not parse toml %v", err)
 	}
 
 	if len(toml["example_schema.events"]) != 1 {
@@ -71,5 +79,50 @@ notif = {"notes" = "\\N"}`
 	}
 	if notes, ok := filter.NotIf["notes"]; !ok || notes != `\N` {
 		t.Errorf("null decoding notif map failed ok %t notes %s", ok, notes)
+	}
+}
+
+func TestTomlSettingsWithReferences(t *testing.T) {
+
+	settings := `
+[["example_schema.events"]]
+filter = "delete"
+
+[["public.users"]]
+filter = "string replace"
+columns = ["password"]
+replacements = ["$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"]
+notif = {"lastname" = "langoustine"}
+
+[["public.users"]]
+filter = "file replace"
+columns = ["firstname", "lastname"]
+source = "testdata/newnames.txt"
+
+[["public.users"]]
+filter = "uuid"
+columns = ["uuid"]
+
+[["public.users"]]
+filter = "file replace"
+columns = ["notes"]
+source = "testdata/newnotes.txt"
+notif = {"notes" = '\N'}
+
+[["public.needs_users"]]
+filter = "reference replace"
+columns = ["public.users.firstname", "public.users.lastname"]
+references = ["public.users"]
+`
+	toml, err := LoadToml(settings)
+	if err != nil {
+		t.Errorf("Could not parse toml %v", err)
+	}
+	needsUsers, ok := toml["public.needs_users"]
+	if !ok {
+		t.Errorf("public.needs_users could not be found")
+	}
+	if needsUsers[0].References[0] != "public.users" {
+		t.Errorf("public.needs_users references incorrect")
 	}
 }

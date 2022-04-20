@@ -17,12 +17,14 @@ type Filter struct {
 	// conditionals
 	If    map[string]string
 	NotIf map[string]string
+	// reference filters specify the external tables they refer to
+	References []string
 }
 
 // LoadToml loads a toml file and returns a Settings structure
-func LoadToml(file string) (Settings, error) {
+func LoadToml(tomlString string) (Settings, error) {
 	var tables Settings
-	_, err := toml.DecodeFile(file, &tables)
+	_, err := toml.Decode(tomlString, &tables)
 	if err != nil {
 		return tables, err
 	}

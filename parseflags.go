@@ -37,7 +37,13 @@ func parseFlags() (args anonArgs, err error) {
 	}
 
 	args.changedOnly = options.Test
-	args.settingsFile = options.Settings
+
+	// read settings file
+	settings, err := os.ReadFile(options.Settings)
+	if err != nil {
+		return args, fmt.Errorf("Could not read settings file: %s", err)
+	}
+	args.settingsToml = string(settings)
 
 	// open stdin or file for reading
 	if options.Args.Input == "" || options.Args.Input == "-" {

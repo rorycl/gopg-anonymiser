@@ -13,24 +13,24 @@ var rows []Row
 func init() {
 	dt := &DumpTable{
 		TableName:   "test",
-		ColumnNames: []string{"name", "age", "password", "uuid"},
+		columnNames: []string{"name", "age", "password", "uuid"},
 		initialised: true,
 	}
 	rows = []Row{
 		Row{
-			DumpTable: dt,
-			Columns:   []string{"Adam Applebaum", "20", "zut alors", "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
-			lineNo:    1,
+			DumpTabler: dt,
+			Columns:    []string{"Adam Applebaum", "20", "zut alors", "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
+			lineNo:     1,
 		},
 		Row{
-			DumpTable: dt,
-			Columns:   []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
-			lineNo:    2,
+			DumpTabler: dt,
+			Columns:    []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
+			lineNo:     2,
 		},
 		Row{
-			DumpTable: dt,
-			Columns:   []string{"Zachary Zebb", "55", "qwerty yuiop", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
-			lineNo:    3,
+			DumpTabler: dt,
+			Columns:    []string{"Zachary Zebb", "55", "qwerty yuiop", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
+			lineNo:     3,
 		},
 	}
 }
@@ -209,24 +209,24 @@ func TestStringReplaceFilterWhereTrueNULL(t *testing.T) {
 
 	dt := &DumpTable{
 		TableName:   "test",
-		ColumnNames: []string{"name", "age", "password", "uuid"},
+		columnNames: []string{"name", "age", "password", "uuid"},
 		initialised: true,
 	}
 	rows = []Row{
 		Row{
-			DumpTable: dt,
-			Columns:   []string{"Adam Applebaum", "20", `\N`, "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
-			lineNo:    1,
+			DumpTabler: dt,
+			Columns:    []string{"Adam Applebaum", "20", `\N`, "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
+			lineNo:     1,
 		},
 		Row{
-			DumpTable: dt,
-			Columns:   []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
-			lineNo:    2,
+			DumpTabler: dt,
+			Columns:    []string{"Jenny Johnstone", "22", "password1", "02613ac8-bc49-11ec-8037-3bad8c65b96e"},
+			lineNo:     2,
 		},
 		Row{
-			DumpTable: dt,
-			Columns:   []string{"Zachary Zebb", "55", "\\N", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
-			lineNo:    3,
+			DumpTabler: dt,
+			Columns:    []string{"Zachary Zebb", "55", "\\N", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
+			lineNo:     3,
 		},
 	}
 
@@ -593,7 +593,7 @@ func TestAllBasicFilters(t *testing.T) {
 		}
 		for i, c := range ro.Columns {
 			// need to skip uuid test
-			if ro.ColumnNames[i] != "uuid" {
+			if ro.ColumnNames()[i] != "uuid" {
 				if c != expected[r.lineNo-1][i] {
 					t.Errorf("%v != %v", c, expected[r.lineNo-1][i])
 				}

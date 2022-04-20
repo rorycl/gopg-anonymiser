@@ -127,7 +127,7 @@ func TestLoadFilters(t *testing.T) {
 		},
 	}
 
-	dt := DumpTable{TableName: "b", ColumnNames: []string{"a", "b", "c", "d"}}
+	dt := DumpTable{TableName: "b", columnNames: []string{"a", "b", "c", "d"}}
 
 	rowFilters, err := loadFilters(settings, &dt)
 	if err != nil {
@@ -211,7 +211,7 @@ func TestLoadFiltersFail(t *testing.T) {
 		},
 	}
 
-	dt := DumpTable{TableName: "b", ColumnNames: []string{"a", "b", "c", "d"}}
+	dt := DumpTable{TableName: "b", columnNames: []string{"a", "b", "c", "d"}}
 
 	for _, tc := range tests {
 		_, err := loadFilters(tc.setting, &dt)

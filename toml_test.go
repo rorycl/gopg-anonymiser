@@ -112,7 +112,8 @@ notif = {"notes" = '\N'}
 [["public.needs_users"]]
 filter = "reference replace"
 columns = ["public.users.firstname", "public.users.lastname"]
-args = {"reference_column_name" = "public.users.id"}
+# optargs = {"reference_relation" = {"public.users.id" = "lastname"}}
+optargs = {"fklookup" = ["public.users.id", "lastname"]}
 `
 	toml, err := LoadToml(settings)
 	if err != nil {
@@ -126,11 +127,11 @@ args = {"reference_column_name" = "public.users.id"}
 		t.Errorf("public.needs_users should have one filter")
 	}
 	filter := needsUsers[0]
-	refCol, ok := filter.Args["reference_column_name"]
+	refRel, ok := filter.OptArgs["fklookup"]
 	if !ok {
-		t.Errorf("could not find args.reference_column_name")
+		t.Errorf("could not find optargs.fklookup")
 	}
-	if refCol != "public.users.id" {
-		t.Errorf("args reference_column_name != public.users.id")
+	if refRel[0] != "public.users.id" || refRel[1] != "lastname" {
+		t.Errorf("refRel has incorrect values, got %v", refRel)
 	}
 }

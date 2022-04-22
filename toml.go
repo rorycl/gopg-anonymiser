@@ -17,8 +17,8 @@ type Filter struct {
 	// conditionals
 	If    map[string]string
 	NotIf map[string]string
-	// additional arguments
-	Args map[string]string
+	// additional optional arguments in option : [key value] format
+	OptArgs map[string][2]string
 }
 
 // LoadToml loads a toml file and returns a Settings structure

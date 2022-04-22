@@ -17,8 +17,8 @@ type Filter struct {
 	// conditionals
 	If    map[string]string
 	NotIf map[string]string
-	// reference filters specify the external tables they refer to
-	References []string
+	// additional arguments
+	Args map[string]string
 }
 
 // LoadToml loads a toml file and returns a Settings structure

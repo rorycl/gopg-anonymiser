@@ -112,7 +112,7 @@ notif = {"notes" = '\N'}
 [["public.needs_users"]]
 filter = "reference replace"
 columns = ["public.users.firstname", "public.users.lastname"]
-references = ["public.users"]
+args = {"reference_column_name" = "public.users.id"}
 `
 	toml, err := LoadToml(settings)
 	if err != nil {
@@ -122,7 +122,15 @@ references = ["public.users"]
 	if !ok {
 		t.Errorf("public.needs_users could not be found")
 	}
-	if needsUsers[0].References[0] != "public.users" {
-		t.Errorf("public.needs_users references incorrect")
+	if len(needsUsers) != 1 {
+		t.Errorf("public.needs_users should have one filter")
+	}
+	filter := needsUsers[0]
+	refCol, ok := filter.Args["reference_column_name"]
+	if !ok {
+		t.Errorf("could not find args.reference_column_name")
+	}
+	if refCol != "public.users.id" {
+		t.Errorf("args reference_column_name != public.users.id")
 	}
 }

@@ -109,9 +109,65 @@ func (dt *DumpTable) ColumnNames() []string {
 // was row 22 can be referenced
 type ReferenceDumpTable struct {
 	DumpTable
-	originalData   []Row
-	latestData     []Row
-	recordedInited bool
+	originalRows []Row
+	latestRows   []Row
+}
+
+// NewReferenceDumpTable creates a DumpTable wrapped with some
+// additional fields for reference
+func NewReferenceDumpTable(copyLine string, interestingTables []string) (*DumpTable, error) {
+
+	dt, err := NewDumpTable(copyLine, interestingTables)
+	if err != nil {
+		return dt, fmt.Errorf("could not make reference dump table: %w", err)
+	}
+	return dt, nil
+}
+
+// addRow adds rows to either the original or latest row slices
+func (rdt *ReferenceDumpTable) addRow(original bool, r Row) {
+	if original {
+		rdt.originalRows = append(rdt.originalRows, r)
+		return
+	}
+	rdt.latestRows = append(rdt.latestRows, r)
+	return
+}
+
+// getRefFieldValue attempts to to find a table's origValue in keyCol
+// from rdt.originalRows, returning the new targetCol value from
+// rdt.latestRows for that row
+func (rdt *ReferenceDumpTable) getRefFieldValue(keyCol, origValue, targetCol string) (string, error) {
+
+	keyColNo := -1
+	for i, c := range rdt.ColumnNames() {
+		if c == keyCol {
+			keyColNo = i
+		}
+	}
+	if keyColNo == -1 {
+		return "", fmt.Errorf("could not find referenced key column %s", keyCol)
+	}
+
+	targetColNo := -1
+	for i, c := range rdt.ColumnNames() {
+		if c == targetCol {
+			targetColNo = i
+		}
+	}
+	if targetColNo == -1 {
+		return "", fmt.Errorf("could not find referenced target column %s", targetCol)
+	}
+
+	// loop through the originalRows until the oldValue is found. If
+	// found, use the offset to return the latest value in latestRows at
+	// the same offset
+	for i, row := range rdt.originalRows {
+		if row.Columns[keyColNo] == origValue {
+			return rdt.latestRows[i].Columns[targetColNo], nil
+		}
+	}
+	return "", errors.New("could not find referenced key value")
 }
 
 // Row holds a line (represented by columnar data) from a postgresql

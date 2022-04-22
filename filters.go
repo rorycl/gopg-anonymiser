@@ -237,7 +237,7 @@ func (f UUIDFilter) Filter(r Row) (Row, error) {
 	}
 
 	if changed != len(f.Columns) {
-		return r, errors.New("uuid replacer: could not find all column in UUIDFilter")
+		return r, errors.New("uuid replacer: could not find all columns in UUIDFilter")
 	}
 
 	return r, nil
@@ -361,5 +361,124 @@ func (f FileFilter) Filter(r Row) (Row, error) {
 			return r, fmt.Errorf("multi string file error: %w", err)
 		}
 	}
+	return r, nil
+}
+
+// ReferenceFilter replaces a number of columns in a table with
+// replacements from another table, as a very simple foreign key lookup.
+//
+// Columns set the local row columns used to match foreign keys
+// Replacements et the local row column values to be replaced
+// OptArgs[fklookup][0] is the foreign table key column
+// OptArgs[fklookup][1] is the foreign table value column
+//
+// Given a column value for a row a matching value is sought in row
+// represented by the foreign table key column (specifically its
+// original values, which might have changed after filtering, using
+// ReferenceDumpTable.originalrows) from which a value is returned from
+// the specified foreign table column from
+// ReferenceDumpTable.latestRows. This value is inserted in the
+// Replacement column of the current row being processed.
+//
+// fklookup][0] key columns need to be in the format schema.table.column
+type ReferenceFilter struct {
+	filterName
+	Columns      []string
+	Replacements []string
+	whereTrue    map[string]string
+	whereFalse   map[string]string
+	// the referenced table name
+	fkTableName string
+	// the column name in the referenced table
+	fkKeyColumn string
+	// the column from which to extract a value in the ref table
+	fkValueColumn string
+	// list of external references
+	externalReferences map[string]int
+	// schema.tables with pointers to ReferenceDumpTables
+	externalRefDumpTables map[string]*ReferenceDumpTable
+}
+
+// NewReferenceFilter makes a new ReferenceFilter
+func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse map[string]string, fkKeyCol, fkValueCol string) (*ReferenceFilter, error) {
+
+	f := &ReferenceFilter{
+		filterName:    "reference replace",
+		Columns:       columns,
+		Replacements:  replacements,
+		whereTrue:     whereTrue,
+		whereFalse:    whereFalse,
+		fkValueColumn: fkValueCol,
+	}
+	if len(columns) == 0 {
+		return f, errors.New("reference filters need at least one column specified")
+	}
+	if len(columns) != len(replacements) {
+		return f, fmt.Errorf("column length %d != replacement length %d", len(columns), len(replacements))
+	}
+	// check that the fkKeyCol follows the expected format
+	if len(strings.Split(fkKeyCol, ".")) != 3 {
+		return f, fmt.Errorf("reference filter fk column format schema.table.column required, got %s", fkKeyCol)
+	}
+	parts := strings.Split(fkKeyCol, ".")
+	f.fkTableName = parts[0] + "." + parts[1]
+	f.fkKeyColumn = parts[2]
+	return f, nil
+}
+
+// References returns a Reference Filter's external references
+func (f *ReferenceFilter) References() map[string]int {
+	return f.externalReferences
+}
+
+// AddRefDumpTable adds the named reference dump table (in schema.table
+// format) to externalRefDumpTables
+func (f *ReferenceFilter) AddRefDumpTable(rdt *ReferenceDumpTable) {
+	f.externalRefDumpTables[rdt.TableName] = rdt
+	return
+}
+
+// Filter replaces a column with the replacement indexed by the provided
+// row number with replacements in the external table referenced by
+func (f ReferenceFilter) Filter(r Row) (Row, error) {
+
+	// if there is no line number the previous filter may have stopped
+	// processing
+	if r.lineNo == 0 {
+		return r, nil
+	}
+
+	// if no match for whereTrue conditions, return
+	if len(f.whereTrue) > 0 && r.match(f.FilterName(), f.whereTrue) != true {
+		return r, nil
+	}
+	// if match for whereFalse conditions, return
+	if len(f.whereFalse) > 0 && r.match(f.FilterName(), f.whereFalse) == true {
+		return r, nil
+	}
+
+	refDT, ok := f.externalRefDumpTables[f.fkTableName]
+	if !ok {
+		return r, fmt.Errorf("reference filter could not find foreign table %s", f.fkTableName)
+	}
+
+	for i, localValue := range r.Columns {
+
+		v, err := refDT.getRefFieldValue(
+			f.fkKeyColumn,
+			localValue,
+			f.fkValueColumn,
+		)
+		if err != nil {
+			return r, fmt.Errorf("could not retrieve value: %w", err)
+		}
+		replacementColName := f.Replacements[i]
+		replaceColNo, err := r.colNo(replacementColName)
+		if err != nil {
+			return r, fmt.Errorf("reference filter could not retrieve reference column: %w", err)
+		}
+		r.Columns[replaceColNo] = v
+	}
+
 	return r, nil
 }

@@ -9,14 +9,10 @@ import (
 
 // anonArgs is the Anonymise function signature
 type anonArgs struct {
-	// a postgresql dump file via either os.Stdin or a file
-	dumpFile io.Reader
-	// a toml settings string
-	settingsToml string
-	// output to either os.Stdout or a file
-	output io.Writer
-	// only show changed tables inthe output
-	changedOnly bool
+	dumpFile     io.Reader // a postgresql dump file via either os.Stdin or a file
+	settingsToml string    // a toml settings string
+	output       io.Writer // output to either os.Stdout or a file
+	changedOnly  bool      // only show changed tables inthe output
 }
 
 // Anonymise anonymises a postgresql dump file

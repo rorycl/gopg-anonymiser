@@ -28,15 +28,17 @@ func TestTable(t *testing.T) {
 	}
 	defer f.Close()
 
-	tableFilters := map[string][]RowFilterer{
-		"example_schema.events": []RowFilterer{
-			mockFilter{},
+	tf := tableFilters{
+		tableFilters: map[string][]RowFilterer{
+			"example_schema.events": []RowFilterer{
+				mockFilter{},
+			},
 		},
 	}
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		dt, err := NewDumpTable(scanner.Text(), tableFilters)
+		dt, err := NewDumpTable(scanner.Text(), tf)
 		if err == ErrNoDumpTable {
 			continue
 		}
@@ -64,9 +66,11 @@ func TestTableUsers(t *testing.T) {
 	}
 	defer f.Close()
 
-	tableFilters := map[string][]RowFilterer{
-		"public.users": []RowFilterer{
-			mockFilter{},
+	tf := tableFilters{
+		tableFilters: map[string][]RowFilterer{
+			"public.users": []RowFilterer{
+				mockFilter{},
+			},
 		},
 	}
 
@@ -77,7 +81,7 @@ func TestTableUsers(t *testing.T) {
 	for scanner.Scan() {
 
 		if !dt.Inited() {
-			dt, err = NewDumpTable(scanner.Text(), tableFilters)
+			dt, err = NewDumpTable(scanner.Text(), tf)
 			if err == ErrNoDumpTable {
 				continue
 			}
@@ -107,5 +111,4 @@ func TestTableUsers(t *testing.T) {
 		}
 		t.Logf("line extracted %d, %v", i, l)
 	}
-
 }

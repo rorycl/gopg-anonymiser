@@ -387,14 +387,11 @@ type ReferenceFilter struct {
 	Replacements []string
 	whereTrue    map[string]string
 	whereFalse   map[string]string
-	// the referenced table name
-	fkTableName string
-	// the column name in the referenced table
-	fkKeyColumn string
-	// the column from which to extract a value in the ref table
-	fkValueColumn string
-	// schema.tables with pointers to ReferenceDumpTables
-	externalRefDumpTable *ReferenceDumpTable
+
+	fkTableName   string              // the referenced table name
+	fkKeyColumn   string              // the key column name in the referenced table
+	fkValueColumn string              // the column from which to extract a value in the ref table
+	refDumpTable  *ReferenceDumpTable // pointer to the dump table referred to by fkTableName
 }
 
 // NewReferenceFilter makes a new ReferenceFilter
@@ -425,9 +422,10 @@ func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse ma
 }
 
 // SetRefDumpTable adds the named reference dump table to the filter
-// struct
+// struct. This happens by necessity after the ReferenceFilter has been
+// initialised
 func (f *ReferenceFilter) SetRefDumpTable(rdt *ReferenceDumpTable) {
-	f.externalRefDumpTable = rdt
+	f.refDumpTable = rdt
 	return
 }
 
@@ -450,6 +448,13 @@ func (f ReferenceFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
+	// abort if the reference dump table is nil
+	if f.refDumpTable == nil {
+		// FIXME
+		fmt.Println("temporary fix in place for no refdumptable")
+		return r, nil
+	}
+
 	for i, localColName := range f.Columns {
 
 		localColNo, err := r.colVal(localColName)
@@ -457,7 +462,7 @@ func (f ReferenceFilter) Filter(r Row) (Row, error) {
 			fmt.Errorf("reference filter error: %w", err)
 		}
 
-		v, err := f.externalRefDumpTable.getRefFieldValue(
+		v, err := f.refDumpTable.getRefFieldValue(
 			f.fkKeyColumn,
 			localColNo,
 			f.fkValueColumn,

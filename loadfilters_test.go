@@ -22,17 +22,17 @@ func TestLoadFilters(t *testing.T) {
 		},
 	}
 
-	tableFilters, err := loadFilters(settings)
+	tf, err := loadFilters(settings)
 	if err != nil {
 		t.Errorf("load filter error %s", err)
 	}
-	if len(tableFilters) != 2 {
-		t.Errorf("length of tableFilters should be 2, is %d", len(tableFilters))
+	if len(tf.tableFilters) != 2 {
+		t.Errorf("length of tableFilters should be 2, is %d", len(tf.tableFilters))
 	}
-	if tableFilters["b"][0].FilterName() != "uuid replace" {
-		t.Errorf("filter name not uuid replace, got %s", tableFilters["b"][0].FilterName())
+	if tf.tableFilters["b"][0].FilterName() != "uuid replace" {
+		t.Errorf("filter name not uuid replace, got %s", tf.tableFilters["b"][0].FilterName())
 	}
-	t.Logf("tableFilters: %T %+v\n", tableFilters, tableFilters)
+	t.Logf("tableFilters: %T %+v\n", tf, tf)
 
 }
 

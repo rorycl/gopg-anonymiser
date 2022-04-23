@@ -94,14 +94,15 @@ func TestAnonymiseOK(t *testing.T) {
 
 	// the row with langoustine should not be changed to the new
 	// password; note that langoustine is changed to
-	contents := strings.SplitN(buffer.String(), "$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC", -1)
+	pw := "$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC"
+	contents := strings.SplitN(buffer.String(), pw, -1)
 	if len(contents) != 6 {
 		t.Errorf("split contents should provide 6 parts, returned %d", len(contents))
 	}
 	lines := strings.Split(buffer.String(), "\n")
 	for i, l := range lines {
 		if strings.Contains(l, "xander") {
-			if !strings.Contains(l, "$2a$06$cj4Coa76ZPud2KiFW4wPDuTL98N8p4mFjJoV5mJ2Id9.2QiAcJ6bO") {
+			if strings.Contains(l, pw) {
 				t.Errorf("langoustine/xander password should not change on row %d", i)
 			}
 		}

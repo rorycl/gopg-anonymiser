@@ -32,3 +32,8 @@ columns = ["notes"]
 # cycle through 3 example notes
 source = "testdata/newnotes.txt"
 
+[["public.fkexample"]]
+filter = "reference replace"
+columns = ["user_id"]
+replacements = ["firstname_materialized"]
+optargs = {"fklookup" = ["public.users.id", "firstname"]}

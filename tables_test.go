@@ -24,8 +24,8 @@ func TestTable(t *testing.T) {
 			continue
 		}
 		if err == ErrNotInterestingTable {
-			if dt.TableName != "public.users" {
-				t.Errorf("not interesting table %s not public.users", dt.TableName)
+			if dt.TableName != "public.users" && dt.TableName != "public.fkexample" {
+				t.Errorf("not interesting table %s not public.users or public.fkexample", dt.TableName)
 			}
 			t.Logf("not interesting table %+v", dt)
 			continue

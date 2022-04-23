@@ -111,8 +111,8 @@ notif = {"notes" = '\N'}
 
 [["public.needs_users"]]
 filter = "reference replace"
-columns = ["public.users.firstname", "public.users.lastname"]
-# optargs = {"reference_relation" = {"public.users.id" = "lastname"}}
+columns = ["public.users.firstname"]
+replacements = ["public.users.lastname"]
 optargs = {"fklookup" = ["public.users.id", "lastname"]}
 `
 	toml, err := LoadToml(settings)

@@ -393,8 +393,6 @@ type ReferenceFilter struct {
 	fkKeyColumn string
 	// the column from which to extract a value in the ref table
 	fkValueColumn string
-	// list of external references
-	externalReferences map[string]int
 	// schema.tables with pointers to ReferenceDumpTables
 	externalRefDumpTable *ReferenceDumpTable
 }
@@ -424,11 +422,6 @@ func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse ma
 	f.fkTableName = parts[0] + "." + parts[1]
 	f.fkKeyColumn = parts[2]
 	return f, nil
-}
-
-// References returns a Reference Filter's external references
-func (f *ReferenceFilter) References() map[string]int {
-	return f.externalReferences
 }
 
 // SetRefDumpTable adds the named reference dump table to the filter

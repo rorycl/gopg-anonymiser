@@ -8,13 +8,11 @@ import (
 	"github.com/google/uuid"
 )
 
-var dt *DumpTable
-var rdt *ReferenceDumpTable
 var rows []Row
+var rdt *ReferenceDumpTable
 
 func init() {
-
-	dt = &DumpTable{
+	dt := &DumpTable{
 		TableName:   "test",
 		columnNames: []string{"name", "age", "password", "uuid"},
 		initialised: true,
@@ -36,7 +34,6 @@ func init() {
 			lineNo:     3,
 		},
 	}
-
 	// reference dump table
 	rdt = &ReferenceDumpTable{
 		DumpTable: DumpTable{
@@ -98,7 +95,9 @@ func TestDeleteFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", i, err)
@@ -121,6 +120,7 @@ func TestStringReplaceFilterFail(t *testing.T) {
 	if err == nil {
 		t.Error("newReplaceByColumnFilter init should fail")
 	}
+
 }
 
 func TestStringReplaceFilter(t *testing.T) {
@@ -139,8 +139,9 @@ func TestStringReplaceFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	rows = rows
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -151,9 +152,6 @@ func TestStringReplaceFilter(t *testing.T) {
 			)
 		}
 		t.Logf("%+v\n", ro)
-	}
-	for _, r := range rows {
-		fmt.Println(r.Columns)
 	}
 }
 
@@ -182,7 +180,9 @@ func TestStringReplaceFilterWhereTrue(t *testing.T) {
 		{name: "Zachary Zebb", password: "qwerty yuiop"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -227,7 +227,9 @@ func TestStringReplaceFilterWhereFalse(t *testing.T) {
 		{name: "Zachary Zebb", password: "APassword"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -255,7 +257,7 @@ func TestStringReplaceFilterWhereTrueNULL(t *testing.T) {
 		columnNames: []string{"name", "age", "password", "uuid"},
 		initialised: true,
 	}
-	rows := []Row{
+	rows = []Row{
 		Row{
 			DumpTabler: dt,
 			Columns:    []string{"Adam Applebaum", "20", `\N`, "f86f06f8-bc48-11ec-9d40-07b727bf6764"},
@@ -296,7 +298,9 @@ func TestStringReplaceFilterWhereTrueNULL(t *testing.T) {
 		{name: "Zachary Zebb", password: "APassword"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -369,7 +373,9 @@ func TestFileReplaceFilter(t *testing.T) {
 		3: "replace1",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -406,7 +412,9 @@ func TestFileReplaceFilterWhereTrue(t *testing.T) {
 		3: "Zachary Zebb",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -443,7 +451,9 @@ func TestFileReplaceFilterWhereFalse(t *testing.T) {
 		3: "replace1",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -469,7 +479,9 @@ func TestUUIDReplaceFilter(t *testing.T) {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
@@ -495,7 +507,9 @@ func TestUUIDReplaceFilterWhereTrue(t *testing.T) {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
@@ -526,7 +540,9 @@ func TestUUIDReplaceFilterWhereFalse(t *testing.T) {
 		t.Errorf("Could not initialise uuid filter: %s", err)
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		uuidOld := r.Columns[3]
 		ro, err := filter.Filter(r)
 		if err != nil {
@@ -599,7 +615,9 @@ func TestAllBasicFilters(t *testing.T) {
 		"uuid replace",
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		ro := r
 		// use interface
 		for i, f := range []RowFilterer{filter, filter2, filter3, filter4} {
@@ -651,7 +669,9 @@ func TestMultiStringReplaceFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	for _, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for _, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Error on row linenumber %d: %v\n", r.lineNo, err)
@@ -709,7 +729,9 @@ Norris Naughton	31	dba2468`)
 		[]string{"Norris Naughton", "31", "dba2468", "09cf3bd4-bc49-11ec-83d6-ab2e063c8ce1"},
 	}
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Multifile error on row linenumber %d: %v\n", r.lineNo, err)
@@ -741,7 +763,10 @@ func TestNewReferenceFilter(t *testing.T) {
 	// register the referenced dump tables
 	filter.SetRefDumpTable(rdt)
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
+		fmt.Printf("in : %v\n", r.Columns)
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Reference error on row linenumber %d: %v\n", r.lineNo, err)
@@ -758,10 +783,11 @@ func TestNewReferenceFilter(t *testing.T) {
 		if have != want {
 			t.Errorf("processed password have %s want %s", have, want)
 		}
+		fmt.Printf("out : %v\n", r.Columns)
 	}
 }
 
-func TestNewReferenceFilterAddRows(t *testing.T) {
+func TestNewReferenceFilterWithAdd(t *testing.T) {
 
 	filter, err := NewReferenceFilter(
 		// replace the name column using age as a key to the foreign
@@ -776,10 +802,30 @@ func TestNewReferenceFilterAddRows(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not register reference filter %w", err)
 	}
+
+	// grab, zero and reset rdt rows
+	var oRows []Row
+	copy(oRows, rdt.originalRows)
+	rdt.originalRows = []Row{}
+	var lRows []Row
+	copy(lRows, rdt.latestRows)
+	rdt.latestRows = []Row{}
+
+	// add the rows back in
+	for _, r := range oRows {
+		rdt.addRow(true, r)
+	}
+	for _, r := range lRows {
+		rdt.addRow(false, r)
+	}
+
 	// register the referenced dump tables
 	filter.SetRefDumpTable(rdt)
 
-	for i, r := range rows {
+	var rowsCopy []Row
+	copy(rowsCopy, rows)
+	for i, r := range rowsCopy {
+		fmt.Printf("in : %v\n", r.Columns)
 		ro, err := filter.Filter(r)
 		if err != nil {
 			t.Errorf("Reference error on row linenumber %d: %v\n", r.lineNo, err)
@@ -796,5 +842,6 @@ func TestNewReferenceFilterAddRows(t *testing.T) {
 		if have != want {
 			t.Errorf("processed password have %s want %s", have, want)
 		}
+		fmt.Printf("out : %v\n", r.Columns)
 	}
 }

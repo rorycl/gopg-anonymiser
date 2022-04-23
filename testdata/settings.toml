@@ -32,3 +32,8 @@ source = "testdata/newnotes.txt"
 # Postgresql NULL columns must be recorded as '\N' or "\\N"
 notif = {"notes" = '\N'}
 
+[["public.fkexample"]]
+filter = "reference replace"
+columns = ["user_id"]
+replacements = ["firstname_materialized"]
+optargs = {"fklookup" = ["public.users.id", "firstname"]}

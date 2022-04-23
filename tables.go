@@ -11,6 +11,7 @@ import (
 type DumpTable struct {
 	TableName   string
 	columnNames []string
+	filters     []RowFilterer
 	lines       int
 	initialised bool
 }
@@ -43,7 +44,7 @@ var copyRegex = regexp.MustCompile(`^COPY ([^ ]+) \(([^)]+)\) FROM stdin;`)
 //
 // but only if the name of the extracted table, including schema name,
 // is in interestingTables
-func NewDumpTable(copyLine string, interestingTables []string) (*DumpTable, error) {
+func NewDumpTable(copyLine string, tableFilters map[string][]RowFilterer) (*DumpTable, error) {
 
 	d := new(DumpTable)
 	if !(strings.Contains(copyLine, "COPY ") && strings.Contains(copyLine, " FROM stdin;")) {
@@ -58,16 +59,16 @@ func NewDumpTable(copyLine string, interestingTables []string) (*DumpTable, erro
 	d.columnNames = strings.Split(matches[2], ", ")
 
 	// return early unless the table name is in interestingTables
-	ok := false
-	for _, it := range interestingTables {
-		if it == d.TableName {
-			ok = true
-			break
-		}
-	}
+	filters, ok := tableFilters[d.TableName]
 	if !ok {
 		return d, ErrNotInterestingTable
 	}
+
+	// add filters
+	if len(filters) == 0 {
+		return d, fmt.Errorf("table %s given 0 filters", d.TableName)
+	}
+	d.filters = filters
 
 	// mark the struct as initialised
 	d.initialised = true
@@ -115,9 +116,9 @@ type ReferenceDumpTable struct {
 
 // NewReferenceDumpTable creates a DumpTable wrapped with some
 // additional fields for reference
-func NewReferenceDumpTable(copyLine string, interestingTables []string) (*DumpTable, error) {
+func NewReferenceDumpTable(copyLine string, tableFilters map[string][]RowFilterer) (*DumpTable, error) {
 
-	dt, err := NewDumpTable(copyLine, interestingTables)
+	dt, err := NewDumpTable(copyLine, tableFilters)
 	if err != nil {
 		return dt, fmt.Errorf("could not make reference dump table: %w", err)
 	}

@@ -7,6 +7,19 @@ import (
 	"testing"
 )
 
+// mock filter implements RowFilterer
+type mockFilter struct{}
+
+// FilterName returns a mock filter name
+func (f mockFilter) FilterName() string {
+	return "mock filter"
+}
+
+// Filter returns the provided row unchanged
+func (f mockFilter) Filter(r Row) (Row, error) {
+	return r, nil
+}
+
 func TestTable(t *testing.T) {
 
 	f, err := os.Open("testdata/pg_dump.sql")
@@ -15,11 +28,15 @@ func TestTable(t *testing.T) {
 	}
 	defer f.Close()
 
-	interestingTables := []string{"example_schema.events"}
+	tableFilters := map[string][]RowFilterer{
+		"example_schema.events": []RowFilterer{
+			mockFilter{},
+		},
+	}
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		dt, err := NewDumpTable(scanner.Text(), interestingTables)
+		dt, err := NewDumpTable(scanner.Text(), tableFilters)
 		if err == ErrNoDumpTable {
 			continue
 		}
@@ -47,16 +64,20 @@ func TestTableUsers(t *testing.T) {
 	}
 	defer f.Close()
 
-	dt := new(DumpTable)
-	interestingTables := []string{"public.users"}
+	tableFilters := map[string][]RowFilterer{
+		"public.users": []RowFilterer{
+			mockFilter{},
+		},
+	}
 
 	scanner := bufio.NewScanner(f)
 	lines := [][]string{}
 
+	dt := new(DumpTable)
 	for scanner.Scan() {
 
 		if !dt.Inited() {
-			dt, err = NewDumpTable(scanner.Text(), interestingTables)
+			dt, err = NewDumpTable(scanner.Text(), tableFilters)
 			if err == ErrNoDumpTable {
 				continue
 			}

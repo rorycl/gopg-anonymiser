@@ -396,7 +396,7 @@ type ReferenceFilter struct {
 	// list of external references
 	externalReferences map[string]int
 	// schema.tables with pointers to ReferenceDumpTables
-	externalRefDumpTables map[string]*ReferenceDumpTable
+	externalRefDumpTable *ReferenceDumpTable
 }
 
 // NewReferenceFilter makes a new ReferenceFilter
@@ -431,10 +431,10 @@ func (f *ReferenceFilter) References() map[string]int {
 	return f.externalReferences
 }
 
-// AddRefDumpTable adds the named reference dump table (in schema.table
-// format) to externalRefDumpTables
-func (f *ReferenceFilter) AddRefDumpTable(rdt *ReferenceDumpTable) {
-	f.externalRefDumpTables[rdt.TableName] = rdt
+// SetRefDumpTable adds the named reference dump table to the filter
+// struct
+func (f *ReferenceFilter) SetRefDumpTable(rdt *ReferenceDumpTable) {
+	f.externalRefDumpTable = rdt
 	return
 }
 
@@ -457,21 +457,22 @@ func (f ReferenceFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
-	refDT, ok := f.externalRefDumpTables[f.fkTableName]
-	if !ok {
-		return r, fmt.Errorf("reference filter could not find foreign table %s", f.fkTableName)
-	}
+	for i, localColName := range f.Columns {
 
-	for i, localValue := range r.Columns {
+		localColNo, err := r.colVal(localColName)
+		if err != nil {
+			fmt.Errorf("reference filter error: %w", err)
+		}
 
-		v, err := refDT.getRefFieldValue(
+		v, err := f.externalRefDumpTable.getRefFieldValue(
 			f.fkKeyColumn,
-			localValue,
+			localColNo,
 			f.fkValueColumn,
 		)
 		if err != nil {
 			return r, fmt.Errorf("could not retrieve value: %w", err)
 		}
+
 		replacementColName := f.Replacements[i]
 		replaceColNo, err := r.colNo(replacementColName)
 		if err != nil {

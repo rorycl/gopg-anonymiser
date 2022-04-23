@@ -143,6 +143,7 @@ func (rdt *ReferenceDumpTable) getRefFieldValue(keyCol, origValue, targetCol str
 	for i, c := range rdt.ColumnNames() {
 		if c == keyCol {
 			keyColNo = i
+			break
 		}
 	}
 	if keyColNo == -1 {
@@ -153,6 +154,7 @@ func (rdt *ReferenceDumpTable) getRefFieldValue(keyCol, origValue, targetCol str
 	for i, c := range rdt.ColumnNames() {
 		if c == targetCol {
 			targetColNo = i
+			break
 		}
 	}
 	if targetColNo == -1 {

@@ -50,7 +50,7 @@ func Anonymise(args anonArgs) error {
 			case ErrNotInterestingTable:
 			case nil:
 			default:
-				return fmt.Errorf("Error parsing line %s", t)
+				return fmt.Errorf("Error parsing line %s : %w", t, err)
 			}
 
 			// re-initialise in-dump line numbers if the dumptable is

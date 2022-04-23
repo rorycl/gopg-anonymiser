@@ -74,6 +74,10 @@ func loadFilters(settings Settings) (map[string][]RowFilterer, error) {
 				}
 				rfs = append(rfs, filter)
 
+			case "reference replace":
+				// todo
+				rfs = append(rfs, mockFilter{})
+
 			default:
 				return tableFilters, fmt.Errorf("filter type %s not known", f.Filter)
 			}

@@ -52,7 +52,7 @@ func NewDumpTable(copyLine string, tableFilters map[string][]RowFilterer) (*Dump
 	}
 	matches := copyRegex.FindStringSubmatch(copyLine)
 	if len(matches) != 3 {
-		return d, fmt.Errorf("could not parse copy line %s", copyLine)
+		return d, fmt.Errorf("could not parse copy line %s with parts %d", copyLine, len(matches))
 	}
 
 	d.TableName = matches[1]

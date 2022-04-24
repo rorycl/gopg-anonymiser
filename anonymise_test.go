@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestAnonymiseNoFail(t *testing.T) {
+func TestAnonymiseEmptyFail(t *testing.T) {
 
 	dumpFile, err := ioutil.TempFile("/tmp/", "dump_")
 	if err != nil {
@@ -36,9 +36,10 @@ func TestAnonymiseNoFail(t *testing.T) {
 	}
 
 	err = Anonymise(args)
-	if err != nil {
-		t.Error("empty files should not fail")
+	if err == nil {
+		t.Error("empty files should fail")
 	}
+	t.Log(err)
 }
 
 func TestAnonymiseFail(t *testing.T) {
@@ -72,6 +73,10 @@ func TestAnonymiseOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not open test dump file %s, %s", dumpFile, err)
 	}
+	df2, err := os.Open(dumpFile)
+	if err != nil {
+		t.Errorf("Could not open test dump file %s, %s", dumpFile, err)
+	}
 
 	tomlString, err := os.ReadFile("testdata/settings.toml")
 	if err != nil {
@@ -82,6 +87,7 @@ func TestAnonymiseOK(t *testing.T) {
 
 	args := anonArgs{
 		dumpFile:     df,
+		dumpFileRef:  df2,
 		settingsToml: string(tomlString),
 		output:       buffer,
 		changedOnly:  true,

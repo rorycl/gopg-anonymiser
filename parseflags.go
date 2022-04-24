@@ -38,6 +38,13 @@ func parseFlags() (args anonArgs, err error) {
 
 	args.changedOnly = options.Test
 
+	// set dumpfile
+	if options.Args.Input == "" {
+		args.dumpFilePath = "-" // set os.Stdout
+	} else {
+		args.dumpFilePath = options.Args.Input
+	}
+
 	// read settings file
 	settings, err := os.ReadFile(options.Settings)
 	if err != nil {
@@ -46,15 +53,8 @@ func parseFlags() (args anonArgs, err error) {
 	args.settingsToml = string(settings)
 
 	// open stdin or file for reading
-	if options.Args.Input == "" || options.Args.Input == "-" {
-		args.dumpFile = os.Stdin
-	} else {
-		filer, err := os.Open(options.Args.Input)
-		if err != nil {
-			return args,
-				fmt.Errorf("Could not open file %s for reading, %s", options.Args.Input, err)
-		}
-		args.dumpFile = filer
+	if options.Args.Input == "" {
+		args.dumpFilePath = "-"
 	}
 
 	// open stdout or file for writing

@@ -38,7 +38,7 @@ func TestTable(t *testing.T) {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		dt, err := NewDumpTable(scanner.Text(), tf)
+		dt, err := NewDumpTable(scanner.Text(), tf, false)
 		if err == ErrNoDumpTable {
 			continue
 		}
@@ -81,7 +81,7 @@ func TestTableUsers(t *testing.T) {
 	for scanner.Scan() {
 
 		if !dt.Inited() {
-			dt, err = NewDumpTable(scanner.Text(), tf)
+			dt, err = NewDumpTable(scanner.Text(), tf, false)
 			if err == ErrNoDumpTable {
 				continue
 			}

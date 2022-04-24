@@ -11,16 +11,26 @@ import (
 type DumpTable struct {
 	TableName   string
 	columnNames []string
-	filters     []RowFilterer
 	lines       int
 	initialised bool
 }
+
+// RefTableRegister is a register of reference tables
+type RefTableRegister map[string]*ReferenceDumpTable
 
 // ErrNoDumpTable reports that a dump table was not found
 var ErrNoDumpTable = errors.New("not a dump table")
 
 // ErrNotInterestingTable reports that a dump table wasn't interesting
 var ErrNotInterestingTable = errors.New("not an interesting dump table")
+
+// ErrIsRefDumpTable reports that a reference dump table was found in a
+// normal dump table context
+var ErrIsRefDumpTable = errors.New("reference dump table found in a normal context")
+
+// ErrIsNormalDumpTable reports that a dump table was found in a
+// reference dump table context
+var ErrIsNormalDumpTable = errors.New("normal dump table found in a reference context")
 
 // DumpTabler is an interface abstracting the functions of a DumpTable
 // and ReferenceTable so that that two can be used interchangeably
@@ -44,9 +54,10 @@ var copyRegex = regexp.MustCompile(`^COPY ([^ ]+) \(([^)]+)\) FROM stdin;`)
 //
 // but only if the name of the extracted table, including schema name,
 // is in interestingTables
-func NewDumpTable(copyLine string, tf tableFilters) (*DumpTable, error) {
+func NewDumpTable(copyLine string, refContext bool, rf RefTableRegister) (*DumpTable, error) {
 
 	d := new(DumpTable)
+
 	if !(strings.Contains(copyLine, "COPY ") && strings.Contains(copyLine, " FROM stdin;")) {
 		return d, ErrNoDumpTable
 	}
@@ -58,17 +69,14 @@ func NewDumpTable(copyLine string, tf tableFilters) (*DumpTable, error) {
 	d.TableName = matches[1]
 	d.columnNames = strings.Split(matches[2], ", ")
 
-	// return early unless the table name is in interestingTables
-	filters, ok := tf.tableFilters[d.TableName]
-	if !ok {
-		return d, ErrNotInterestingTable
+	// If in refContext mode, return ErrIsNormalDumpTable unless the
+	// table is in tf.refTableNames.
+	if refContext == true {
+		_, ok := rf[d.TableName]
+		if !ok {
+			return d, ErrNotInterestingTable
+		}
 	}
-
-	// add filters
-	if len(filters) == 0 {
-		return d, fmt.Errorf("table %s given 0 filters", d.TableName)
-	}
-	d.filters = filters
 
 	// mark the struct as initialised
 	d.initialised = true
@@ -109,20 +117,25 @@ func (dt *DumpTable) ColumnNames() []string {
 // in that row has been anonymised, any original or new valies in what
 // was row 22 can be referenced
 type ReferenceDumpTable struct {
-	DumpTable
+	*DumpTable
 	originalRows []Row
 	latestRows   []Row
 }
 
 // NewReferenceDumpTable creates a DumpTable wrapped with some
 // additional fields for reference
-func NewReferenceDumpTable(copyLine string, tf tableFilters) (*DumpTable, error) {
+func NewReferenceDumpTable(copyLine string, rf RefTableRegister) (*ReferenceDumpTable, error) {
 
-	dt, err := NewDumpTable(copyLine, tf)
+	var rdt ReferenceDumpTable
+	var err error
+	rdt.DumpTable, err = NewDumpTable(copyLine, true, rf)
 	if err != nil {
-		return dt, fmt.Errorf("could not make reference dump table: %w", err)
+		return &rdt, err // err comes in several flavours, eg ErrNotInterestingTable
 	}
-	return dt, nil
+	rdt.originalRows = []Row{}
+	rdt.latestRows = []Row{}
+
+	return &rdt, nil
 }
 
 // addRow adds rows to either the original or latest row slices

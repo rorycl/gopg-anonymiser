@@ -36,7 +36,7 @@ func init() {
 	}
 	// reference dump table
 	rdt = &ReferenceDumpTable{
-		DumpTable: DumpTable{
+		DumpTable: &DumpTable{
 			TableName:   "public.users",
 			columnNames: []string{"name", "age", "password", "uuid"},
 			initialised: true,

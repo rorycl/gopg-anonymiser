@@ -395,9 +395,9 @@ type ReferenceFilter struct {
 }
 
 // NewReferenceFilter makes a new ReferenceFilter
-func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse map[string]string, fkKeyCol, fkValueCol string) (*ReferenceFilter, error) {
+func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse map[string]string, fkKeyCol, fkValueCol string) (ReferenceFilter, error) {
 
-	f := &ReferenceFilter{
+	f := ReferenceFilter{
 		filterName:    "reference replace",
 		Columns:       columns,
 		Replacements:  replacements,
@@ -424,8 +424,9 @@ func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse ma
 // SetRefDumpTable adds the named reference dump table to the filter
 // struct. This happens by necessity after the ReferenceFilter has been
 // initialised
-func (f *ReferenceFilter) SetRefDumpTable(rdt *ReferenceDumpTable) {
+func (f ReferenceFilter) SetRefDumpTable(rdt *ReferenceDumpTable) {
 	f.refDumpTable = rdt
+	fmt.Printf("SetRefDumpTable : %s\n", f.refDumpTable.TableName)
 	return
 }
 
@@ -439,6 +440,8 @@ func (f ReferenceFilter) Filter(r Row) (Row, error) {
 		return r, nil
 	}
 
+	fmt.Printf("in filter\n    %+v", f)
+
 	// if no match for whereTrue conditions, return
 	if len(f.whereTrue) > 0 && r.match(f.FilterName(), f.whereTrue) != true {
 		return r, nil
@@ -450,9 +453,7 @@ func (f ReferenceFilter) Filter(r Row) (Row, error) {
 
 	// abort if the reference dump table is nil
 	if f.refDumpTable == nil {
-		// FIXME
-		fmt.Println("temporary fix in place for no refdumptable")
-		return r, nil
+		return r, errors.New("reference filter error: no reference dump table")
 	}
 
 	for i, localColName := range f.Columns {

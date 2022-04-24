@@ -16,12 +16,23 @@ type tableFilters struct {
 }
 
 // getTableFilters gets the slice of RowFilterer filters for a table
-func (t *tableFilters) getTableFilters(table string) ([]RowFilterer, error) {
-	tf, ok := t.tableFilters[table]
-	if !ok {
-		return tf, fmt.Errorf("table %s not in tableFilters map", table)
+func (t *tableFilters) getTableFilters(table string) []RowFilterer {
+	return t.tableFilters[table]
+}
+
+// getReferenceTables returns a map of external tables
+func (t *tableFilters) getReferenceTables() map[string]int {
+	et := map[string]int{}
+	for _, filters := range t.tableFilters {
+		for _, f := range filters {
+			rf, ok := f.(ReferenceFilter)
+			if !ok {
+				continue
+			}
+			et[rf.fkTableName]++
+		}
 	}
-	return tf, nil
+	return et
 }
 
 // loadFilters loads a set of filters from a settings file and returns a
@@ -114,7 +125,7 @@ func loadFilters(settings Settings) (tableFilters, error) {
 				if err != nil {
 					return tf, fmt.Errorf("creation error for reference replace: %w", err)
 				}
-				rfs = append(rfs, filter)
+				rfs = append(rfs, &filter)
 
 			default:
 				return tf, fmt.Errorf("filter type %s not known", f.Filter)
@@ -141,7 +152,6 @@ func (t *tableFilters) check() error {
 	}
 
 	// a map of reference tables and source tables
-	var refTables = make(map[string]int)
 	var sourceTables = make(map[string]int)
 
 	for table, filters := range t.tableFilters {
@@ -155,11 +165,6 @@ func (t *tableFilters) check() error {
 				}
 
 			case "reference replace":
-				rf, ok := f.(ReferenceFilter)
-				if !ok {
-					fmt.Errorf("could not extract reference filter for %s", table)
-				}
-				refTables[rf.fkTableName]++
 				sourceTables[table]++
 
 			default:

@@ -18,6 +18,12 @@ type DumpTable struct {
 // RefTableRegister is a register of reference tables
 type RefTableRegister map[string]*ReferenceDumpTable
 
+func (r RefTableRegister) show() {
+	for k, v := range r {
+		fmt.Printf("\n\nreftableregister table %s\n\tdt %+v\n\n", k, v)
+	}
+}
+
 // ErrNoDumpTable reports that a dump table was not found
 var ErrNoDumpTable = errors.New("not a dump table")
 
@@ -54,7 +60,7 @@ var copyRegex = regexp.MustCompile(`^COPY ([^ ]+) \(([^)]+)\) FROM stdin;`)
 //
 // but only if the name of the extracted table, including schema name,
 // is in interestingTables
-func NewDumpTable(copyLine string, refContext bool, rf RefTableRegister) (*DumpTable, error) {
+func NewDumpTable(copyLine string, refContext bool, tf tableFilters) (*DumpTable, error) {
 
 	d := new(DumpTable)
 
@@ -72,8 +78,13 @@ func NewDumpTable(copyLine string, refContext bool, rf RefTableRegister) (*DumpT
 	// If in refContext mode, return ErrIsNormalDumpTable unless the
 	// table is in tf.refTableNames.
 	if refContext == true {
-		_, ok := rf[d.TableName]
-		if !ok {
+		ex := tf.getReferenceTables()
+		if _, ok := ex[d.TableName]; !ok {
+			return d, ErrNotInterestingTable
+		}
+	} else {
+		filters := tf.getTableFilters(d.TableName)
+		if len(filters) == 0 {
 			return d, ErrNotInterestingTable
 		}
 	}
@@ -124,11 +135,11 @@ type ReferenceDumpTable struct {
 
 // NewReferenceDumpTable creates a DumpTable wrapped with some
 // additional fields for reference
-func NewReferenceDumpTable(copyLine string, rf RefTableRegister) (*ReferenceDumpTable, error) {
+func NewReferenceDumpTable(copyLine string, tf tableFilters) (*ReferenceDumpTable, error) {
 
 	var rdt ReferenceDumpTable
 	var err error
-	rdt.DumpTable, err = NewDumpTable(copyLine, true, rf)
+	rdt.DumpTable, err = NewDumpTable(copyLine, true, tf)
 	if err != nil {
 		return &rdt, err // err comes in several flavours, eg ErrNotInterestingTable
 	}

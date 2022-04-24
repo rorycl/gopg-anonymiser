@@ -59,11 +59,11 @@ func Anonymise(args anonArgs) error {
 				// init dump table, which does not init if it returns a
 				// sentinel error except for ErrIsRefDumpTable
 				if referenceMode {
-					rdt, err = NewReferenceDumpTable(t, refTables)
+					rdt, err = NewReferenceDumpTable(t, tableFilters)
 					dt = rdt.DumpTable
 				}
 				if !referenceMode {
-					dt, err = NewDumpTable(t, referenceMode, refTables)
+					dt, err = NewDumpTable(t, referenceMode, tableFilters)
 				}
 				switch err {
 				case ErrNoDumpTable:
@@ -79,36 +79,26 @@ func Anonymise(args anonArgs) error {
 				// map, and initialise any reference filters
 				if dt.Inited() {
 
+					fmt.Printf("REFMODE %t, table %s\n", referenceMode, dt.TableName)
+
 					// extract filters
-					filters, err := tableFilters.getTableFilters(dt.TableName)
-					if err != nil {
+					filters := tableFilters.getTableFilters(dt.TableName)
+					if len(filters) == 0 {
 						return fmt.Errorf("could not extract filters for table %s", dt.TableName)
 					}
 
 					lineNo = 0
 
-					// register reference table in map
-					if referenceMode {
-						refTables[dt.TableName] = rdt
-
-					}
 					// load reference table into reference filter
 					if !referenceMode {
 						for _, f := range filters {
-							rf, ok := f.(ReferenceFilter)
-							if !ok {
-								continue
-							}
-							refdt, ok := refTables[rf.fkTableName]
-							if !ok {
-								return fmt.Errorf("reftable %s could not be found", rf.fkTableName)
-							}
-							rf.SetRefDumpTable(refdt)
+							f.setRefDumpTable(refTables)
 						}
 					}
 				}
 
 			} else {
+
 				// the dump table is initialised; filter the lines unless
 				// the end of table marker is found
 
@@ -121,6 +111,11 @@ func Anonymise(args anonArgs) error {
 
 				columns, ok := dt.LineSplitter(scanner.Text())
 				if !ok {
+					// register reference table in map
+					if referenceMode {
+						refTables[dt.TableName] = rdt
+					}
+
 					dt = new(DumpTable)
 					if referenceMode {
 						rdt = new(ReferenceDumpTable)
@@ -150,8 +145,9 @@ func Anonymise(args anonArgs) error {
 				}
 
 				// extract filters
-				filters, err := tableFilters.getTableFilters(dt.TableName)
-				if err != nil {
+
+				filters := tableFilters.getTableFilters(dt.TableName)
+				if len(filters) == 0 {
 					return fmt.Errorf("could not extract filters for table %s", dt.TableName)
 				}
 

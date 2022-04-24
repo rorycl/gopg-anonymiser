@@ -19,6 +19,9 @@ type RowFilterer interface {
 	FilterName() string
 	// Filter performs filtering on a row of data
 	Filter(r Row) (Row, error)
+	// setRefDumpTable sets the foreign dump table, only needed for
+	// reference replace filters
+	setRefDumpTable(rt RefTableRegister)
 }
 
 // filterName is the base filter type name, embedded in each filter
@@ -28,6 +31,11 @@ type filterName string
 // FilterName returns the name of the filter type
 func (f filterName) FilterName() string {
 	return string(f)
+}
+
+// setRefDumpTable in the general case does notthing
+func (f *filterName) setRefDumpTable(rt RefTableRegister) {
+	return
 }
 
 // DeleteFilter removes all lines
@@ -76,7 +84,7 @@ func newReplaceByColumnFilter(column, replacement string, whereTrue, whereFalse 
 }
 
 // Filter replaces a column with a fixed string replacement
-func (f replaceByColumnFilter) Filter(r Row) (Row, error) {
+func (f *replaceByColumnFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
@@ -149,7 +157,7 @@ func newFileByColumnFilter(column string, fh io.Reader, whereTrue, whereFalse ma
 // Filter replaces a column with the replacement indexed by the provided
 // row number from the list of replacements. If the list of replacements
 // has been exhausted, start from the top again
-func (f fileByColumnFilter) Filter(r Row) (Row, error) {
+func (f *fileByColumnFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
@@ -207,7 +215,7 @@ func NewUUIDFilter(columns []string, whereTrue, whereFalse map[string]string) (*
 
 // Filter replaces a column with the replacement indexed by the provided
 // row number with a uuid
-func (f UUIDFilter) Filter(r Row) (Row, error) {
+func (f *UUIDFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
@@ -424,23 +432,26 @@ func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse ma
 // SetRefDumpTable adds the named reference dump table to the filter
 // struct. This happens by necessity after the ReferenceFilter has been
 // initialised
-func (f ReferenceFilter) SetRefDumpTable(rdt *ReferenceDumpTable) {
-	f.refDumpTable = rdt
-	fmt.Printf("SetRefDumpTable : %s\n", f.refDumpTable.TableName)
+func (f *ReferenceFilter) setRefDumpTable(rt RefTableRegister) {
+	for k, v := range rt {
+		if k == f.fkTableName {
+			f.refDumpTable = v
+			fmt.Printf("filter %p set dump\n", &f)
+			break
+		}
+	}
 	return
 }
 
 // Filter replaces a column with the replacement indexed by the provided
 // row number with replacements in the external table referenced by
-func (f ReferenceFilter) Filter(r Row) (Row, error) {
+func (f *ReferenceFilter) Filter(r Row) (Row, error) {
 
 	// if there is no line number the previous filter may have stopped
 	// processing
 	if r.lineNo == 0 {
 		return r, nil
 	}
-
-	fmt.Printf("in filter\n    %+v", f)
 
 	// if no match for whereTrue conditions, return
 	if len(f.whereTrue) > 0 && r.match(f.FilterName(), f.whereTrue) != true {
@@ -453,6 +464,7 @@ func (f ReferenceFilter) Filter(r Row) (Row, error) {
 
 	// abort if the reference dump table is nil
 	if f.refDumpTable == nil {
+		fmt.Printf("\n\nfilter %p empty refDumpTable %+v\n", &f, f.refDumpTable)
 		return r, errors.New("reference filter error: no reference dump table")
 	}
 

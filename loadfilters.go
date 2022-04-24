@@ -15,6 +15,15 @@ type tableFilters struct {
 	tableFilters  map[string][]RowFilterer
 }
 
+// getTableFilters gets the slice of RowFilterer filters for a table
+func (t *tableFilters) getTableFilters(table string) ([]RowFilterer, error) {
+	tf, ok := t.tableFilters[table]
+	if !ok {
+		return tf, fmt.Errorf("table %s not in tableFilters map", table)
+	}
+	return tf, nil
+}
+
 // loadFilters loads a set of filters from a settings file and returns a
 // tableFilters struct
 func loadFilters(settings Settings) (tableFilters, error) {
@@ -152,6 +161,11 @@ func (t *tableFilters) check() error {
 				}
 				refTables[rf.fkTableName]++
 				sourceTables[table]++
+
+			default:
+				if l == 0 {
+					fmt.Errorf("at least one filter expected for %s", table)
+				}
 			}
 		}
 	}

@@ -112,3 +112,73 @@ func TestLoadFiltersFail(t *testing.T) {
 		t.Log(err)
 	}
 }
+
+func TestLoadFiltersFailDelete(t *testing.T) {
+
+	settings := Settings{
+		"a": []Filter{
+			Filter{
+				Filter:       "string replace",
+				Columns:      []string{"a", "c"},
+				Replacements: []string{"abc", "def"},
+			},
+			Filter{
+				Filter:       "delete",
+				Columns:      []string{},
+				Replacements: []string{},
+			},
+		},
+	}
+
+	_, err := loadFilters(settings)
+	if err == nil {
+		t.Errorf("load filters should fail for more than one delete filter")
+	}
+	t.Log(err)
+}
+
+func TestLoadFiltersFailCircularRefs(t *testing.T) {
+
+	settings := Settings{
+		"public.a": []Filter{
+			Filter{
+				Filter:       "string replace",
+				Columns:      []string{"a", "c"},
+				Replacements: []string{"abc", "def"},
+			},
+			Filter{
+				Filter:       "reference replace",
+				Columns:      []string{"a"},
+				Replacements: []string{"b"},
+				OptArgs: map[string][2]string{
+					"fklookup": [2]string{
+						"public.b.a", "c",
+					},
+				},
+			},
+		},
+		"public.b": []Filter{
+			Filter{
+				Filter:       "string replace",
+				Columns:      []string{"a", "c"},
+				Replacements: []string{"abc", "def"},
+			},
+			Filter{
+				Filter:       "reference replace",
+				Columns:      []string{"a"},
+				Replacements: []string{"b"},
+				OptArgs: map[string][2]string{
+					"fklookup": [2]string{
+						"public.a.a", "c",
+					},
+				},
+			},
+		},
+	}
+
+	_, err := loadFilters(settings)
+	if err == nil {
+		t.Errorf("load filters should detect circular reference")
+	}
+	t.Log(err)
+}

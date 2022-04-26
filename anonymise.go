@@ -7,6 +7,87 @@ import (
 	"strings"
 )
 
+<<<<<<< HEAD
+=======
+// loadFilters loads a set of table transformation filters for a dump
+// table from settings
+func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
+
+	rfs := []RowFilterer{}
+
+	// retrieve settings for this dump table else error
+	var filters []Filter
+	for tableName, tableFilters := range settings {
+		if tableName == dt.TableName {
+			filters = tableFilters
+			break
+		}
+	}
+	if len(filters) == 0 {
+		return rfs, fmt.Errorf("table '%s' could not be found in settings", dt.TableName)
+	}
+
+	// load filters
+	for _, f := range filters {
+
+		switch f.Filter {
+		case "delete":
+			filter, _ := NewDeleteFilter()
+			rfs = append(rfs, filter)
+
+		case "uuid":
+			filter, err := NewUUIDFilter(f.Columns, f.If, f.NotIf)
+			// fixme
+			if err != nil {
+				return rfs, fmt.Errorf("table %s: uuid filter error: %w", dt.TableName, err)
+			}
+			rfs = append(rfs, filter)
+
+		case "string replace":
+			if len(f.Columns) < 1 {
+				return rfs, fmt.Errorf("table %s: string replace filter: must provide at lease one column", dt.TableName)
+			}
+			if len(f.Columns) != len(f.Replacements) {
+				return rfs, fmt.Errorf("table %s: string replace filter: column length != replacement length", dt.TableName)
+			}
+			filter, err := NewReplaceFilter(
+				f.Columns,
+				f.Replacements,
+				f.If,
+				f.NotIf,
+			)
+			if err != nil {
+				return rfs, fmt.Errorf("table %s: source error for string replace: %w", dt.TableName, err)
+			}
+			rfs = append(rfs, filter)
+
+		case "file replace":
+			if len(f.Columns) < 1 {
+				return rfs, fmt.Errorf("table %s: file replace: must provide at lease one column", dt.TableName)
+			}
+			filer, err := os.Open(f.Source)
+			if err != nil {
+				return rfs, fmt.Errorf("table %s: file replace filter error: %w", dt.TableName, err)
+			}
+			filter, err := NewFileFilter(
+				f.Columns,
+				filer,
+				f.If,
+				f.NotIf,
+			)
+			if err != nil {
+				return rfs, fmt.Errorf("table %s: source error for file error: %w", dt.TableName, err)
+			}
+			rfs = append(rfs, filter)
+
+		default:
+			return rfs, fmt.Errorf("table %s: filter type %s not known", dt.TableName, f.Filter)
+		}
+	}
+	return rfs, nil
+}
+
+>>>>>>> main
 // anonArgs is the Anonymise function signature
 type anonArgs struct {
 	dumpFile     io.Reader // a postgresql dump file via either os.Stdin or a file

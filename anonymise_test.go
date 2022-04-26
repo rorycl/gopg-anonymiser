@@ -29,7 +29,7 @@ func TestAnonymiseEmptyFail(t *testing.T) {
 	}
 
 	args := anonArgs{
-		dumpFile:     dumpFile,
+		dumpFilePath: dumpFile.Name(),
 		settingsToml: string(tomlString),
 		output:       os.Stdout,
 		changedOnly:  false,
@@ -53,7 +53,7 @@ func TestAnonymiseFail(t *testing.T) {
 	settingsToml := "xxx yyyy zzz"
 
 	args := anonArgs{
-		dumpFile:     dumpFile,
+		dumpFilePath: dumpFile.Name(),
 		settingsToml: settingsToml,
 		output:       os.Stdout,
 		changedOnly:  false,
@@ -69,14 +69,6 @@ func TestAnonymiseFail(t *testing.T) {
 func TestAnonymiseOK(t *testing.T) {
 
 	dumpFile := "testdata/pg_dump.sql"
-	df, err := os.Open(dumpFile)
-	if err != nil {
-		t.Errorf("Could not open test dump file %s, %s", dumpFile, err)
-	}
-	df2, err := os.Open(dumpFile)
-	if err != nil {
-		t.Errorf("Could not open test dump file %s, %s", dumpFile, err)
-	}
 
 	tomlString, err := os.ReadFile("testdata/settings.toml")
 	if err != nil {
@@ -86,8 +78,7 @@ func TestAnonymiseOK(t *testing.T) {
 	buffer := bytes.NewBuffer(nil)
 
 	args := anonArgs{
-		dumpFile:     df,
-		dumpFileRef:  df2,
+		dumpFilePath: dumpFile,
 		settingsToml: string(tomlString),
 		output:       buffer,
 		changedOnly:  true,

@@ -10,6 +10,7 @@ import (
 
 var rows []Row
 var rdt *ReferenceDumpTable
+var rtr = make(RefTableRegister)
 
 func init() {
 	dt := &DumpTable{
@@ -78,6 +79,8 @@ func init() {
 			lineNo:     3,
 		},
 	}
+
+	rtr["public.users"] = rdt
 }
 
 func _filterNameTest(f RowFilterer, expected string) error {
@@ -761,7 +764,7 @@ func TestNewReferenceFilter(t *testing.T) {
 		t.Errorf("could not register reference filter %w", err)
 	}
 	// register the referenced dump tables
-	filter.SetRefDumpTable(rdt)
+	filter.setRefDumpTable(rtr)
 
 	var rowsCopy []Row
 	copy(rowsCopy, rows)
@@ -820,7 +823,7 @@ func TestNewReferenceFilterWithAdd(t *testing.T) {
 	}
 
 	// register the referenced dump tables
-	filter.SetRefDumpTable(rdt)
+	filter.setRefDumpTable(rtr)
 
 	var rowsCopy []Row
 	copy(rowsCopy, rows)

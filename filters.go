@@ -443,7 +443,6 @@ func (f *ReferenceFilter) setRefDumpTable(rt RefTableRegister) {
 	for k, v := range rt {
 		if k == f.fkTableName {
 			f.refDumpTable = v
-			fmt.Printf("filter %p set dump\n", &f)
 			break
 		}
 	}
@@ -476,7 +475,6 @@ func (f *ReferenceFilter) Filter(r Row) (Row, error) {
 
 	// abort if the reference dump table is nil
 	if f.refDumpTable == nil {
-		fmt.Printf("\n\nfilter %p empty refDumpTable %+v\n", &f, f.refDumpTable)
 		return r, errors.New("reference filter error: no reference dump table")
 	}
 

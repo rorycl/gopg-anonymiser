@@ -22,6 +22,8 @@ type RowFilterer interface {
 	// setRefDumpTable sets the foreign dump table, only needed for
 	// reference replace filters
 	setRefDumpTable(rt RefTableRegister)
+	// getExternalTables retrieves the name of any foreign dump table
+	getRefDumpTable() string
 }
 
 // filterName is the base filter type name, embedded in each filter
@@ -36,6 +38,11 @@ func (f filterName) FilterName() string {
 // setRefDumpTable in the general case does notthing
 func (f *filterName) setRefDumpTable(rt RefTableRegister) {
 	return
+}
+
+// getRefDumpTable returns the name of any reference dump table, if any
+func (f *filterName) getRefDumpTable() string {
+	return ""
 }
 
 // DeleteFilter removes all lines
@@ -441,6 +448,11 @@ func (f *ReferenceFilter) setRefDumpTable(rt RefTableRegister) {
 		}
 	}
 	return
+}
+
+// getRefDumpTable returns the name of any reference dump table, if any
+func (f *ReferenceFilter) getRefDumpTable() string {
+	return f.fkTableName
 }
 
 // Filter replaces a column with the replacement indexed by the provided

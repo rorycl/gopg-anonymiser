@@ -25,11 +25,9 @@ func (t *tableFilters) getReferenceTables() map[string]int {
 	et := map[string]int{}
 	for _, filters := range t.tableFilters {
 		for _, f := range filters {
-			rf, ok := f.(ReferenceFilter)
-			if !ok {
-				continue
+			if fk := f.getRefDumpTable(); fk != "" {
+				et[fk]++
 			}
-			et[rf.fkTableName]++
 		}
 	}
 	return et
@@ -177,7 +175,7 @@ func (t *tableFilters) check() error {
 
 	// ensure there are no circular references, and assign reference
 	// table entries to the t.refTableNames entry
-	for r := range refTables {
+	for r := range t.getReferenceTables() {
 		t.refTableNames = append(t.refTableNames, r)
 		for s := range sourceTables {
 			if s == r {

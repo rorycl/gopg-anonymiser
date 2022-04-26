@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -39,16 +38,16 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 			filter, err := NewUUIDFilter(f.Columns, f.If, f.NotIf)
 			// fixme
 			if err != nil {
-				return rfs, fmt.Errorf("uuid filter error: %w", err)
+				return rfs, fmt.Errorf("table %s: uuid filter error: %w", dt.TableName, err)
 			}
 			rfs = append(rfs, filter)
 
 		case "string replace":
 			if len(f.Columns) < 1 {
-				return rfs, errors.New("string replace filter: must provide at lease one column")
+				return rfs, fmt.Errorf("table %s: string replace filter: must provide at lease one column", dt.TableName)
 			}
 			if len(f.Columns) != len(f.Replacements) {
-				return rfs, errors.New("string replace filter: column length != replacement length")
+				return rfs, fmt.Errorf("table %s: string replace filter: column length != replacement length", dt.TableName)
 			}
 			filter, err := NewReplaceFilter(
 				f.Columns,
@@ -57,17 +56,17 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 				f.NotIf,
 			)
 			if err != nil {
-				return rfs, fmt.Errorf("source error for string replace: %w", err)
+				return rfs, fmt.Errorf("table %s: source error for string replace: %w", dt.TableName, err)
 			}
 			rfs = append(rfs, filter)
 
 		case "file replace":
 			if len(f.Columns) < 1 {
-				return rfs, errors.New("file replace: must provide at lease one column")
+				return rfs, fmt.Errorf("table %s: file replace: must provide at lease one column", dt.TableName)
 			}
 			filer, err := os.Open(f.Source)
 			if err != nil {
-				return rfs, fmt.Errorf("file replace filter error: %w", err)
+				return rfs, fmt.Errorf("table %s: file replace filter error: %w", dt.TableName, err)
 			}
 			filter, err := NewFileFilter(
 				f.Columns,
@@ -76,12 +75,12 @@ func loadFilters(settings Settings, dt *DumpTable) ([]RowFilterer, error) {
 				f.NotIf,
 			)
 			if err != nil {
-				return rfs, fmt.Errorf("source error for file error: %w", err)
+				return rfs, fmt.Errorf("table %s: source error for file error: %w", dt.TableName, err)
 			}
 			rfs = append(rfs, filter)
 
 		default:
-			return rfs, fmt.Errorf("filter type %s not known", f.Filter)
+			return rfs, fmt.Errorf("table %s: filter type %s not known", dt.TableName, f.Filter)
 		}
 	}
 	return rfs, nil

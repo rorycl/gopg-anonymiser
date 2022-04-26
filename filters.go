@@ -69,9 +69,6 @@ func newReplaceByColumnFilter(column, replacement string, whereTrue, whereFalse 
 	if column == "" {
 		return f, errors.New("string replacer: column name cannot be empty")
 	}
-	if replacement == "" {
-		return f, errors.New("string replacer: replacement string cannot be empty")
-	}
 	return f, nil
 }
 

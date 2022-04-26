@@ -15,6 +15,16 @@ func (f mockFilter) FilterName() string {
 	return "mock filter"
 }
 
+// setRefDumpTable is an empty implementation
+func (f *mockFilter) setRefDumpTable(rt RefTableRegister) {
+	return
+}
+
+// getRefDumpTable is an empty implementation
+func (f *mockFilter) getRefDumpTable() string {
+	return ""
+}
+
 // Filter returns the provided row unchanged
 func (f mockFilter) Filter(r Row) (Row, error) {
 	return r, nil
@@ -31,14 +41,14 @@ func TestTable(t *testing.T) {
 	tf := tableFilters{
 		tableFilters: map[string][]RowFilterer{
 			"example_schema.events": []RowFilterer{
-				mockFilter{},
+				&mockFilter{},
 			},
 		},
 	}
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		dt, err := NewDumpTable(scanner.Text(), tf, false)
+		dt, err := NewDumpTable(scanner.Text(), false, tf)
 		if err == ErrNoDumpTable {
 			continue
 		}
@@ -69,7 +79,7 @@ func TestTableUsers(t *testing.T) {
 	tf := tableFilters{
 		tableFilters: map[string][]RowFilterer{
 			"public.users": []RowFilterer{
-				mockFilter{},
+				&mockFilter{},
 			},
 		},
 	}
@@ -81,7 +91,7 @@ func TestTableUsers(t *testing.T) {
 	for scanner.Scan() {
 
 		if !dt.Inited() {
-			dt, err = NewDumpTable(scanner.Text(), tf, false)
+			dt, err = NewDumpTable(scanner.Text(), false, tf)
 			if err == ErrNoDumpTable {
 				continue
 			}

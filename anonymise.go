@@ -79,8 +79,6 @@ func Anonymise(args anonArgs) error {
 				// map, and initialise any reference filters
 				if dt.Inited() {
 
-					fmt.Printf("REFMODE %t, table %s\n", referenceMode, dt.TableName)
-
 					// extract filters
 					filters := tableFilters.getTableFilters(dt.TableName)
 					if len(filters) == 0 {

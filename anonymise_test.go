@@ -104,12 +104,35 @@ func TestAnonymiseOK(t *testing.T) {
 			}
 		}
 	}
-	count := strings.Count(buffer.String(), "zachary")
-	if count != 2 {
-		t.Errorf("count of zachary string not 2, got %d", count)
+
+	// COPY example_schema.events (id, flags, data) FROM stdin;
+	// COPY public.fkexample (id, user_id, firstname_materialized) FROM stdin;
+	// 1	1	zachary
+	// 2	3	xavier
+	// 3	5	vanessa
+	// COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
+	// 1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	69000fae-ba42-413e-9346-b08a16be0858	\N
+	// 2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	a7157556-9e42-412b-9bdc-d12b753f0627	\N
+	// 3	xavier	xander	$2a$06$.d8FVKIVagQaHU.6ouHGKegL85H8.cFIvXDNGC/wb8dXAWt3fmukq	df1085f3-2805-45a6-b50f-8ab94001870c	\N
+	// 4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	1dcd41f2-c5a6-47b0-9b76-273ef3b79c85	this is a second note\twith a tab
+	// 5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	855a7f35-b6aa-448f-b08d-7cb0679348df	this is the first note
+	// 6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	89ba3d3b-687c-48c1-975b-a9ac5ef957b2	this is a second note\twith a tab
+
+	// there should be 3 zacharies; one from public.fkexample, two from
+	// public.users
+	// vanessa should be on line 3 of public.fkexample
+
+	var count int
+	if count = strings.Count(buffer.String(), "zachary"); count != 3 {
+		t.Errorf("count of zachary string not 3, got %d", count)
 	}
-	count = strings.Count(buffer.String(), "this is a second note")
-	if count != 2 {
+	if count = strings.Count(buffer.String(), "3	5	vanessa"); count != 1 {
+		t.Errorf("third row data for public.fkexample incorrect; row count %d", count)
+	}
+	if count = strings.Count(buffer.String(), "COPY "); count != 3 {
+		t.Errorf("count of COPY lines should be 3, got %d", count)
+	}
+	if count = strings.Count(buffer.String(), "this is a second note"); count != 2 {
 		t.Errorf("count of second note not 2, got %d", count)
 	}
 

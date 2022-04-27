@@ -84,9 +84,6 @@ func newReplaceByColumnFilter(column, replacement string, whereTrue, whereFalse 
 	if column == "" {
 		return f, errors.New("string replacer: column name cannot be empty")
 	}
-	if replacement == "" {
-		return f, errors.New("string replacer: replacement string cannot be empty")
-	}
 	return f, nil
 }
 
@@ -111,7 +108,7 @@ func (f *replaceByColumnFilter) Filter(r Row) (Row, error) {
 	// find the column number to replace if it has not been initialised
 	colNo, err := r.colNo(f.Column)
 	if err != nil {
-		return r, fmt.Errorf("string replace: %w", err)
+		return r, fmt.Errorf("column %s string replace: %w", f.Column, err)
 	}
 
 	// replace the column contents
@@ -149,13 +146,17 @@ func newFileByColumnFilter(column string, fh io.Reader, whereTrue, whereFalse ma
 	for scanner.Scan() {
 		t := scanner.Text()
 		if strings.Contains(t, "\t") {
-			return f, errors.New("file replacer: source contains a tab")
+			return f, fmt.Errorf("file replacer: source for %s contains a tab", f.Column)
 		}
 		f.Replacements = append(f.Replacements, t)
 	}
 	// return an error if the scanner failed
 	if err := scanner.Err(); err != nil {
 		return f, err
+	}
+
+	if len(f.Replacements) == 0 {
+		return f, fmt.Errorf("file replacer: no replacements found for %s", f.Column)
 	}
 
 	return f, nil
@@ -184,7 +185,7 @@ func (f *fileByColumnFilter) Filter(r Row) (Row, error) {
 	// find the column number to replace if it has not been initialised
 	colNo, err := r.colNo(f.Column)
 	if err != nil {
-		return r, fmt.Errorf("file replacer: %w", err)
+		return r, fmt.Errorf("column %s file replacer error: %w", f.Column, err)
 	}
 
 	// replace the column contents with the replacement equalling the (1

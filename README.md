@@ -1,6 +1,6 @@
 # gopg-anonymiser
 
-Version 0.1.0
+Version 0.2.0
 
 A simple tool for anonymising postgresql dump files from the Postgresql
 `pg_dump` command, which uses row delete and column replacement filters
@@ -34,13 +34,12 @@ Use the `-t` (testmode) flag to only show altered rows.
 
 ## Running the programme
 
-	./gopg-anonymise -h
-
 	Usage:
 	  gopg-anonymise : a simple postgresql dump file anonymiser.
 
 	Anonymise a postgresql dump file using a toml settings file setting out
-	the deletion, or columnar uuid, string or file filters to use.
+	the deletion, or columnar uuid, string, file or reference replacement
+	filters to use.
 
 	gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test] [Input]
 
@@ -60,7 +59,7 @@ Use the `-t` (testmode) flag to only show altered rows.
 A toml file is used to describe tables that should be anonymised. For
 each table to be anonymised one or more filters may be provided.
 
-Presently, apart from the row **delete** filter, three column replacement
+Presently, apart from the row **delete** filter, four column replacement
 filters are provided:
 
 - **uuid** replaces one or more columns with a new uuid
@@ -73,9 +72,17 @@ filters are provided:
   exhausted, cycle the inputs starting from the first line of the
   source.
 
+- **reference replace** replaces data in one or more columns with the
+  value from one or more values from a reference table, requiring the
+  specification of a local and remote key to make matches along the
+  lines of a simple foreign key lookup. Note that the
+  reference table is read into memory. Reference tables track their
+  original and new values so that, for example, a local table can update
+  its `username` value from the new anonymised value in a `users` table.
+
 Each filter can be qualified by `If` and `NotIf` filters which determine
 if the filter should be run based on the contents of one or more columns
-in the row. Both conditionals match if any of their criteria are true.
+in the row. Conditionals match if any of their criteria are true.
 
 The order of filters is important. Beware of changing a row ahead of
 using a conditional.
@@ -116,6 +123,14 @@ source = "testdata/newnotes.txt"
 # Postgresql NULL columns must be recorded as '\N' or "\\N"
 notif = {"notes" = '\N'}
 
+[["public.fkexample"]]
+filter = "reference replace"
+# columns are the local table column names
+columns = ["firstname_materialized"]
+# replacements are the foreign table column names
+replacements = ["firstname"]
+# fklookups.0 is the localkey, .1 is the schema.table.column fk
+optargs = {"fklookup" = ["user_id", "public.users.id"]}
 ```
 
 ## Example
@@ -125,12 +140,18 @@ testdata directory.
 
 The events table contents are removed.
 
+The fkexample table values in the firstname_materialized column are
+replaced by the anonymised values in the users.firstname column
+achieved by the match between public.fkexample.user_id and
+public.users.id.
+
 For the users table, the password column is replaced verbatim except for
-user "langoustine" and all uuids. The first name and last name of each
-user is replaced from the file "testdata/newnames.txt", although because
-there are only 5 entries in the file, the 6th entry is recycled (with
-the firstname "zachary"). The two notes in "testdata/newnotes.txt" are
-cycled through the three entries which are not NULL.
+user "langoustine", and all uuids are newly generated. The first name
+and last name of each user is replaced from the file
+"testdata/newnames.txt", although because there are only 5 entries in
+the file, the 6th entry is recycled (with the firstname "zachary"). The
+two notes in "testdata/newnotes.txt" are cycled through the three
+entries which are not NULL.
 
 ```
 egrep -A 7 "COPY.*public.users" testdata/pg_dump.sql
@@ -147,13 +168,17 @@ COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 ./gopg-anonymise -t -s testdata/settings.toml testdata/pg_dump.sql
 
 COPY example_schema.events (id, flags, data) FROM stdin;
+COPY public.fkexample (id, user_id, firstname_materialized) FROM stdin;
+1	1	zachary
+2	3	xavier
+3	5	vanessa
 COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
-1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	1223421b-23db-4d55-96cf-174f8231c8f3	\N
-2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	7d4d3dfa-10c5-4e3a-9f53-0d94b04a160c	\N
-3	xavier	xander	$2a$06$cj4Coa76ZPud2KiFW4wPDuTL98N8p4mFjJoV5mJ2Id9.2QiAcJ6bO	28571549-9888-413e-bde7-073fc0b0e153	\N
-4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	7486c889-90bc-4391-a209-699d76ac7708	this is a second note\twith a tab
-5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	b34ea5c5-df94-4ff3-8c20-3fb5731b742a	this is the first note
-6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	d0851261-a117-4f7f-a8de-baa6a828092a	this is a second note\twith a tab
+1	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	6a474264-5cd7-4184-a1ed-9049ed4aecaf	\N
+2	yael	yaeger	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	f3da4fee-c05a-447f-a619-a4b0c626c456	\N
+3	xavier	xander	$2a$06$.d8FVKIVagQaHU.6ouHGKegL85H8.cFIvXDNGC/wb8dXAWt3fmukq	6837753f-4dc9-4e95-9d14-375aa62cd021	\N
+4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	242704da-6ba9-47b7-a84e-e2216b713324	this is a second note\twith a tab
+5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	913aae23-d9df-4c66-9f93-9ce59f94c907	this is the first note
+6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	3395c1a1-d9ea-4803-81ba-65333a7698e3	this is a second note\twith a tab
 ```
 
 ## Licence

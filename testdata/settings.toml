@@ -34,6 +34,9 @@ notif = {"notes" = '\N'}
 
 [["public.fkexample"]]
 filter = "reference replace"
-columns = ["user_id"]
-replacements = ["firstname_materialized"]
-optargs = {"fklookup" = ["public.users.id", "firstname"]}
+# columns are the local table column names
+columns = ["firstname_materialized"]
+# replacements are the foreign table column names
+replacements = ["firstname"]
+# fklookups.0 is the localkey, .1 is the schema.table.column fk
+optargs = {"fklookup" = ["user_id", "public.users.id"]}

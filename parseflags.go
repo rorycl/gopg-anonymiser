@@ -10,7 +10,8 @@ import (
 var usage = `: a simple postgresql dump file anonymiser.
 
 Anonymise a postgresql dump file using a toml settings file setting out
-the deletion, or columnar uuid, string or file filters to use.
+the deletion, or columnar uuid, string, file or reference replacement
+filters to use.
 
 gopg-anonymise -s <settings.toml> [-o output or stdout] [-t test]`
 

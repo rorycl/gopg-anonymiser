@@ -481,15 +481,13 @@ func (f *ReferenceFilter) Filter(r Row) (Row, error) {
 
 	for i, localColName := range f.Columns {
 
-		localColNo, err := r.colVal(localColName)
+		val, err := r.colVal(localColName)
 		if err != nil {
 			fmt.Errorf("reference filter error: %w", err)
 		}
 
-		v, err := f.refDumpTable.getRefFieldValue(
-			f.fkKeyColumn,
-			localColNo,
-			f.fkValueColumn,
+		v, err := f.refDumpTable.getUpdatedFieldValue(
+			f.fkKeyColumn, val, f.fkValueColumn,
 		)
 		if err != nil {
 			return r, fmt.Errorf("could not retrieve value: %w", err)

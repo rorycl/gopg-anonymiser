@@ -18,12 +18,6 @@ type DumpTable struct {
 // RefTableRegister is a register of reference tables
 type RefTableRegister map[string]*ReferenceDumpTable
 
-func (r RefTableRegister) show() {
-	for k, v := range r {
-		fmt.Printf("\n\nreftableregister table %s\n\tdt %+v\n\n", k, v)
-	}
-}
-
 // ErrNoDumpTable reports that a dump table was not found
 var ErrNoDumpTable = errors.New("not a dump table")
 
@@ -59,7 +53,8 @@ var copyRegex = regexp.MustCompile(`^COPY ([^ ]+) \(([^)]+)\) FROM stdin;`)
 //     COPY example_schema.events (id, flags, data) FROM stdin;
 //
 // but only if the name of the extracted table, including schema name,
-// is in interestingTables
+// is in the tableFilters argument, and whether or not it is called in
+// a refContext mode (i.e. reference context)
 func NewDumpTable(copyLine string, refContext bool, tf tableFilters) (*DumpTable, error) {
 
 	d := new(DumpTable)
@@ -126,9 +121,12 @@ func (dt *DumpTable) ColumnNames() []string {
 // allows for simple joins to be followed, for example if a users table
 // is recorded in a RecordedDumpTable and a user has id 22 and the data
 // in that row has been anonymised, any original or new valies in what
-// was row 22 can be referenced
+// was row 22 can be referenced. The index map is a map of column names
+// to values in that column and the row number (in both originalRows and
+// latestRows).
 type ReferenceDumpTable struct {
 	*DumpTable
+	rowIndex     map[string]map[string]int // column name to value to row number
 	originalRows []Row
 	latestRows   []Row
 }
@@ -145,6 +143,7 @@ func NewReferenceDumpTable(copyLine string, tf tableFilters) (*ReferenceDumpTabl
 	}
 	rdt.originalRows = []Row{}
 	rdt.latestRows = []Row{}
+	rdt.rowIndex = map[string]map[string]int{}
 
 	return &rdt, nil
 }
@@ -159,42 +158,74 @@ func (rdt *ReferenceDumpTable) addRow(original bool, r Row) {
 	return
 }
 
-// getRefFieldValue attempts to to find a table's origValue in keyCol
-// from rdt.originalRows, returning the new targetCol value from
-// rdt.latestRows for that row
-func (rdt *ReferenceDumpTable) getRefFieldValue(keyCol, origValue, targetCol string) (string, error) {
-
-	keyColNo := -1
-	for i, c := range rdt.ColumnNames() {
+// getColNo returns the column number of a column
+func (rdt *ReferenceDumpTable) getColNo(keyCol string) (int, error) {
+	for i, c := range rdt.columnNames {
 		if c == keyCol {
-			keyColNo = i
-			break
+			return i, nil
 		}
 	}
-	if keyColNo == -1 {
-		return "", fmt.Errorf("could not find referenced key column %s", keyCol)
+	return -1, fmt.Errorf("could not find column %s", keyCol)
+}
+
+// buildIndex builds an index map for a particular column based on
+// values in rdt.latestRows. Note that duplicate row values are not
+// supported
+func (rdt *ReferenceDumpTable) buildIndex(keyCol string) error {
+
+	if len(rdt.originalRows) == 0 {
+		return errors.New("original rows has 0 length; index creation not possible")
 	}
 
-	targetColNo := -1
-	for i, c := range rdt.ColumnNames() {
-		if c == targetCol {
-			targetColNo = i
-			break
-		}
-	}
-	if targetColNo == -1 {
-		return "", fmt.Errorf("could not find referenced target column %s", targetCol)
+	// initialise rdt.rowIndex if necessary
+	if len(rdt.rowIndex) == 0 {
+		rdt.rowIndex = make(map[string]map[string]int)
 	}
 
-	// loop through the originalRows until the oldValue is found. If
-	// found, use the offset to return the latest value in latestRows at
-	// the same offset
-	for i, row := range rdt.originalRows {
-		if row.Columns[keyColNo] == origValue {
-			return rdt.latestRows[i].Columns[targetColNo], nil
+	// initialise map for this column
+	rdt.rowIndex[keyCol] = make(map[string]int)
+	for i, l := range rdt.originalRows {
+
+		val, err := l.colVal(keyCol)
+		if err != nil {
+			return fmt.Errorf("could not find value for column %s", keyCol)
 		}
+		rdt.rowIndex[keyCol][val] = i
 	}
-	return "", errors.New("could not find referenced key value")
+	fmt.Printf("%+v\n", rdt.rowIndex)
+	return nil
+}
+
+// getUpdatedFieldValue looks up the row number of the original value in
+// keyCol and returns the new value for targetCol at that row
+func (rdt *ReferenceDumpTable) getUpdatedFieldValue(keyCol, originalValue, targetCol string) (string, error) {
+
+	// if the index doesn't exist, build it
+	if len(rdt.rowIndex[keyCol]) == 0 {
+		rdt.buildIndex(keyCol)
+	}
+
+	// find the map for this column
+	colMap, ok := rdt.rowIndex[keyCol]
+	if !ok {
+		return "", fmt.Errorf("could not find column %s in rowindex", keyCol)
+	}
+
+	// find the index of the field value for this column
+	index, ok := colMap[originalValue]
+	if !ok {
+		return "", fmt.Errorf("could not find value %s for column %s", originalValue, keyCol)
+	}
+
+	// get the column number of the target column
+	tcol, err := rdt.getColNo(targetCol)
+	if err != nil {
+		return "", fmt.Errorf("could not find referenced field: %w", err)
+	}
+
+	// return the value for the row of the latest values at index in the
+	// target column
+	return rdt.latestRows[index].Columns[tcol], nil
 }
 
 // Row holds a line (represented by columnar data) from a postgresql

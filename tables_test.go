@@ -122,3 +122,75 @@ func TestTableUsers(t *testing.T) {
 		t.Logf("line extracted %d, %v", i, l)
 	}
 }
+
+func TestRefTable(t *testing.T) {
+
+	tf := tableFilters{
+		tableFilters: map[string][]RowFilterer{
+			"public.users": []RowFilterer{
+				&mockFilter{},
+			},
+		},
+	}
+
+	line := `COPY public.users (name, age, password) FROM stdin;`
+
+	dt, err := NewDumpTable(line, false, tf)
+	if err != nil {
+		t.Errorf("could not make new dump table %s", err)
+	}
+	rdt := &ReferenceDumpTable{
+		DumpTable: dt,
+	}
+
+	origRows := []Row{
+		Row{
+			DumpTabler: dt,
+			Columns:    []string{"Adam Applebaum", "20", "zut alors"},
+			lineNo:     1,
+		},
+		Row{
+			DumpTabler: dt,
+			Columns:    []string{"Jenny Johnstone", "22", "password1"},
+			lineNo:     2,
+		},
+		Row{
+			DumpTabler: dt,
+			Columns:    []string{"Zachary Zebb", "55", "qwerty yuiop"},
+			lineNo:     3,
+		},
+	}
+
+	newRows := []Row{
+		Row{
+			DumpTabler: dt,
+			Columns:    []string{"Alice Applebaum", "20", "zut alors"},
+			lineNo:     1,
+		},
+		Row{
+			DumpTabler: dt,
+			Columns:    []string{"Jeremy Johnstone", "22", "password1"},
+			lineNo:     2,
+		},
+		Row{
+			DumpTabler: dt,
+			Columns:    []string{"Zena Zebb", "55", "qwerty yuiop"},
+			lineNo:     3,
+		},
+	}
+
+	for i, r := range origRows {
+		rdt.addRow(true, r)
+		rdt.addRow(false, newRows[i])
+	}
+	if len(rdt.originalRows) != len(rdt.latestRows) {
+		t.Errorf("original rows len %d != latest rows len %d",
+			len(rdt.originalRows), len(rdt.latestRows),
+		)
+	}
+
+	gufv, err := rdt.getUpdatedFieldValue("age", "22", "name")
+	if gufv != "Jeremy Johnstone" {
+		t.Errorf("lookup for %s failed; got %s", "Jeremy Johnstone", gufv)
+	}
+}

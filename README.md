@@ -153,8 +153,27 @@ the file, the 6th entry is recycled (with the firstname "zachary"). The
 two notes in "testdata/newnotes.txt" are cycled through the three
 entries which are not NULL.
 
+Original tables:
+
 ```
-egrep -A 7 "COPY.*public.users" testdata/pg_dump.sql
+egrep -A 5 "COPY example_schema.events"
+
+COPY example_schema.events (id, flags, data) FROM stdin;
+1	{flag1,flag2}	{"a": "b"}
+2	{"flag1,a","flag2,b"}	{"a": "c,b", "b": [1, 0]}
+3	{flag3}	{"c": null}
+4	{"flag3\ttab"}	{"d": "x  y"}
+\.
+
+egrep -A 4 "COPY public.fkexample" testdata/pg_dump.sql
+
+COPY public.fkexample (id, user_id, firstname_materialized) FROM stdin;
+1	1	ariadne
+2	3	lucius
+3	5	asterix
+\.
+
+egrep -A 7 "COPY public.users" testdata/pg_dump.sql
 
 COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 1	ariadne	augustus	$2a$06$xyhc3ZN0KLlw4XSM8YypjueqptvViUdTBQq3m2as3QMZ/lL6gH6ie	6b1b3a33-484a-4870-b6ec-58a8d72fc306	\N
@@ -164,7 +183,11 @@ COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 5	asterix	a gaul	$2a$06$Llerb92vQ763qEX3e/v9WueqoCJdYu4F0mI65xo8Y1uif/vMTlsLq	46cebc75-8b9a-4666-94f3-8142e73c23d2	a "note", with commas, etc.
 6	wormtail	wyckenhof	$2a$06$BEOCQhB5i5zPkAqe2pKq5O6zJmafmwjxkn4NB0mek3w5o70ytkxzm	708fd360-34bb-4ea4-8096-71920bfa7809	a note with a tab here:"\t"
 \.
+```
 
+Output:
+
+```
 ./gopg-anonymise -t -s testdata/settings.toml testdata/pg_dump.sql
 
 COPY example_schema.events (id, flags, data) FROM stdin;

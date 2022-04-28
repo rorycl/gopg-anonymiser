@@ -192,7 +192,6 @@ func (rdt *ReferenceDumpTable) buildIndex(keyCol string) error {
 		}
 		rdt.rowIndex[keyCol][val] = i
 	}
-	fmt.Printf("%+v\n", rdt.rowIndex)
 	return nil
 }
 

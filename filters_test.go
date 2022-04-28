@@ -753,12 +753,12 @@ func TestNewReferenceFilter(t *testing.T) {
 	filter, err := NewReferenceFilter(
 		// replace the name column using age as a key to the foreign
 		// table
-		[]string{"age"},
-		[]string{"name"},
+		[]string{"name"},    // local col to replace
+		[]string{"name"},    // remote value col
 		map[string]string{}, // whereTrue
 		map[string]string{}, // whereFalse
+		"age",               // local key
 		"public.users.age",  // remote key column
-		"name",              // remote value column
 	)
 	if err != nil {
 		t.Errorf("could not register reference filter %w", err)
@@ -795,12 +795,12 @@ func TestNewReferenceFilterWithAdd(t *testing.T) {
 	filter, err := NewReferenceFilter(
 		// replace the name column using age as a key to the foreign
 		// table
-		[]string{"age"},
-		[]string{"name"},
+		[]string{"name"},    // local col to replace
+		[]string{"name"},    // remote value col
 		map[string]string{}, // whereTrue
 		map[string]string{}, // whereFalse
+		"age",               // local key
 		"public.users.age",  // remote key column
-		"name",              // remote value column
 	)
 	if err != nil {
 		t.Errorf("could not register reference filter %w", err)

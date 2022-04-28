@@ -381,45 +381,59 @@ func (f FileFilter) Filter(r Row) (Row, error) {
 }
 
 // ReferenceFilter replaces a number of columns in a table with
-// replacements from another table, as a very simple foreign key lookup.
+// replacements from another table, as a very simple foreign key lookup using
+// the local key localKey and foreignKey (qualified in schema.table.column
+// format)
 //
-// Columns set the local row columns used to match foreign keys
-// Replacements et the local row column values to be replaced
-// OptArgs[fklookup][0] is the foreign table key column
-// OptArgs[fklookup][1] is the foreign table value column
+// Given a localKey of "key" and remoteKey of "schema.table.key" source columns
+// of ["user", "score"] and target columns of ["firstname", "average"], these
+// tables:
 //
-// Given a column value for a row a matching value is sought in row
-// represented by the foreign table key column (specifically its
-// original values, which might have changed after filtering, using
-// ReferenceDumpTable.originalrows) from which a value is returned from
-// the specified foreign table column from
-// ReferenceDumpTable.latestRows. This value is inserted in the
-// Replacement column of the current row being processed.
+//	local:  key user  score ace
+//	        1   adam  30    *
+//		    3   james 10
+//		    2   billy 20
 //
-// fklookup][0] key columns need to be in the format schema.table.column
+//	remote: key firstname average
+//	        1   jenny     20
+//			2   sue       20
+//			3   trish     20
+//
+// will transform the local table into
+//
+//	local:  key user  score ace
+//	        1   jenny 20    *
+//		    3   trish 20
+//		    2   sue   20
+//
+// Settings:
+// OptArgs[fklookup][0] is the local key column
+// OptArgs[fklookup][1] is the foreign key column
+// fklookup][1] keys need to be in the format schema.table.column
 type ReferenceFilter struct {
 	filterName
-	Columns      []string
-	Replacements []string
+	Columns      []string // local target columns
+	Replacements []string // remote data source columns
 	whereTrue    map[string]string
 	whereFalse   map[string]string
 
-	fkTableName   string              // the referenced table name
-	fkKeyColumn   string              // the key column name in the referenced table
-	fkValueColumn string              // the column from which to extract a value in the ref table
-	refDumpTable  *ReferenceDumpTable // pointer to the dump table referred to by fkTableName
+	localKey     string
+	foreignKey   string              // the key column name in the referenced table in schema.table.column format
+	foreignTable string              // the referenced table name
+	refDumpTable *ReferenceDumpTable // pointer to the dump table referred to by foreignTable
 }
 
 // NewReferenceFilter makes a new ReferenceFilter
-func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse map[string]string, fkKeyCol, fkValueCol string) (ReferenceFilter, error) {
+func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse map[string]string, localKey, foreignKey string) (ReferenceFilter, error) {
 
 	f := ReferenceFilter{
-		filterName:    "reference replace",
-		Columns:       columns,
-		Replacements:  replacements,
-		whereTrue:     whereTrue,
-		whereFalse:    whereFalse,
-		fkValueColumn: fkValueCol,
+		filterName:   "reference replace",
+		Columns:      columns,
+		Replacements: replacements,
+		whereTrue:    whereTrue,
+		whereFalse:   whereFalse,
+		localKey:     localKey,
+		foreignKey:   foreignKey,
 	}
 	if len(columns) == 0 {
 		return f, errors.New("reference filters need at least one column specified")
@@ -427,13 +441,16 @@ func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse ma
 	if len(columns) != len(replacements) {
 		return f, fmt.Errorf("column length %d != replacement length %d", len(columns), len(replacements))
 	}
-	// check that the fkKeyCol follows the expected format
-	if len(strings.Split(fkKeyCol, ".")) != 3 {
-		return f, fmt.Errorf("reference filter fk column format schema.table.column required, got %s", fkKeyCol)
+	// check that the local and foreignKey keys follows the expected format
+	if len(strings.Split(localKey, ".")) != 1 {
+		return f, fmt.Errorf("reference filter local key must not have schema qualification, got %s", localKey)
 	}
-	parts := strings.Split(fkKeyCol, ".")
-	f.fkTableName = parts[0] + "." + parts[1]
-	f.fkKeyColumn = parts[2]
+	if len(strings.Split(foreignKey, ".")) != 3 {
+		return f, fmt.Errorf("reference filter foreign key requires schema.table.column format, got %s", foreignKey)
+	}
+	parts := strings.Split(foreignKey, ".")
+	f.foreignTable = parts[0] + "." + parts[1]
+	f.foreignKey = parts[2] // reassign
 	return f, nil
 }
 
@@ -442,7 +459,7 @@ func NewReferenceFilter(columns, replacements []string, whereTrue, whereFalse ma
 // initialised
 func (f *ReferenceFilter) setRefDumpTable(rt RefTableRegister) {
 	for k, v := range rt {
-		if k == f.fkTableName {
+		if k == f.foreignTable {
 			f.refDumpTable = v
 			break
 		}
@@ -452,7 +469,7 @@ func (f *ReferenceFilter) setRefDumpTable(rt RefTableRegister) {
 
 // getRefDumpTable returns the name of any reference dump table, if any
 func (f *ReferenceFilter) getRefDumpTable() string {
-	return f.fkTableName
+	return f.foreignTable
 }
 
 // Filter replaces a column with the replacement indexed by the provided
@@ -479,26 +496,35 @@ func (f *ReferenceFilter) Filter(r Row) (Row, error) {
 		return r, errors.New("reference filter error: no reference dump table")
 	}
 
-	for i, localColName := range f.Columns {
+	// for this row extract the local key value and then supply the remote
+	// target column name, to determine the remote matching row from which the
+	// target column value is extracted. Concepts:
+	// local key     : f.localKey    (supplies value for matching remote key)
+	// local key val : keyValue      (used for matching remote)
+	// remote key    : f.foreignKey  (supply name of key)
+	// local column  : targetColNo   (column number of the local column to replace)
+	// remote column : remoteColName (column name of the remote source)
 
-		val, err := r.colVal(localColName)
+	keyValue, err := r.colVal(f.localKey)
+	if err != nil {
+		fmt.Errorf("reference filter cannot resolve key value: %w", err)
+	}
+
+	for i, colName := range f.Columns {
+
+		targetColNo, err := r.colNo(colName)
 		if err != nil {
-			fmt.Errorf("reference filter error: %w", err)
+			fmt.Errorf("reference filter: cannot resolve column name %s: %w", colName, err)
 		}
+		remoteColName := f.Replacements[i]
 
 		v, err := f.refDumpTable.getUpdatedFieldValue(
-			f.fkKeyColumn, val, f.fkValueColumn,
+			f.foreignKey, keyValue, remoteColName,
 		)
 		if err != nil {
-			return r, fmt.Errorf("could not retrieve value: %w", err)
+			return r, fmt.Errorf("reference filter could not retrieve value: %w", err)
 		}
-
-		replacementColName := f.Replacements[i]
-		replaceColNo, err := r.colNo(replacementColName)
-		if err != nil {
-			return r, fmt.Errorf("reference filter could not retrieve reference column: %w", err)
-		}
-		r.Columns[replaceColNo] = v
+		r.Columns[targetColNo] = v
 	}
 
 	return r, nil

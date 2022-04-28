@@ -109,11 +109,29 @@ columns = ["notes"]
 source = "testdata/newnotes.txt"
 notif = {"notes" = '\N'}
 
+# public.fkexample (id, user_id, firstname_materialized)
+# 1	1	ariadne
+# 2	3	lucius
+# 3	5	asterix
+# 
+# public.users (id, firstname, lastname, password, uuid, notes)
+# 1	ariadne	augustus ...
+# 2	james	joyce ...
+# 3	lucius	langoustine ...
+# 4	biggles	barrymore ...
+# 5	asterix	a gaul ...
+# 6	wormtail	wyckenhof ...
+# 
+# local key : id
+# foriegn key : public.users.id
+# columns [firstname_materialized]
+# replacements [public.users.firstname]
+
 [["public.needs_users"]]
 filter = "reference replace"
-columns = ["public.users.firstname"]
-replacements = ["public.users.lastname"]
-optargs = {"fklookup" = ["public.users.id", "lastname"]}
+columns = ["user_id", "firstname_materialized"]
+replacements = ["id, firstname"]
+optargs = {"fklookup" = ["user_id", "public.users.id"]}
 `
 	toml, err := LoadToml(settings)
 	if err != nil {
@@ -131,7 +149,7 @@ optargs = {"fklookup" = ["public.users.id", "lastname"]}
 	if !ok {
 		t.Errorf("could not find optargs.fklookup")
 	}
-	if refRel[0] != "public.users.id" || refRel[1] != "lastname" {
+	if refRel[0] != "user_id" || refRel[1] != "public.users.id" {
 		t.Errorf("refRel has incorrect values, got %v", refRel)
 	}
 }

@@ -35,6 +35,11 @@ func Anonymise(args anonArgs) error {
 	// refTables hold the processed reference table data
 	refTables := RefTableRegister{}
 
+	// refTableInDumpMode is a boolean representing if the normal output
+	// should switch to the stored reference table rather than the file
+	// scan
+	var refTableInDumpMode bool
+
 	// scanDumpFile is a func that can be run in two modes: one for
 	// reference mode, and another for standard, non-reference mode.
 	// In reference mode two scans of the dumpfile are required: one for
@@ -74,6 +79,15 @@ func Anonymise(args anonArgs) error {
 					return fmt.Errorf("Error parsing line %s : %w", t, err)
 				}
 
+				// if not in referenceMode and the table is in
+				// refTables, set refTableInDumpMode to true
+				if !referenceMode {
+					_, ok := refTables[dt.TableName]
+					if ok {
+						refTableInDumpMode = true
+					}
+				}
+
 				// re-initialise in-dump line numbers if the dumptable is
 				// now initalised, add reference tables to the saving
 				// map, and initialise any reference filters
@@ -102,7 +116,10 @@ func Anonymise(args anonArgs) error {
 
 				// however, in referenceMode, no output to args.output
 				// is made, and lines are instead captured in
-				// dt.orginalRows an dt.latestRows
+				// dt.orginalRows and dt.latestRows
+
+				// also consider if the table is in reftables, if so,
+				// output the already filtered latestRows
 
 				// count lines from 1
 				lineNo++
@@ -112,12 +129,21 @@ func Anonymise(args anonArgs) error {
 					// register reference table in map
 					if referenceMode {
 						refTables[dt.TableName] = rdt
+						// return early if all reference tables have
+						// been seen
+						if len(refTables) == len(tableFilters.refTableNames) {
+							return nil
+						}
 					}
 
 					dt = new(DumpTable)
 					if referenceMode {
 						rdt = new(ReferenceDumpTable)
 					}
+
+					// unset
+					refTableInDumpMode = false
+
 					if args.changedOnly {
 						continue
 					}
@@ -130,42 +156,50 @@ func Anonymise(args anonArgs) error {
 					continue
 				}
 
-				// make rows
-				row := NewRow(dt, columns, lineNo)
+				var row Row
 
-				// filter rows first capturing the rows for reference
-				// tables before and after filtering if applicable
-				if referenceMode {
+				switch {
+				case refTableInDumpMode:
+					row = refTables[dt.TableName].latestRows[lineNo-1]
+					t = strings.Join(row.Columns, "\t")
+
+				case referenceMode:
+					row = NewRow(dt, columns, lineNo)
 					copyCols := make([]string, len(row.Columns))
 					copy(copyCols, row.Columns)
 					origRow := NewRow(row.DumpTabler, copyCols, row.lineNo)
 					rdt.originalRows = append(rdt.originalRows, origRow)
+
+				default:
+					row = NewRow(dt, columns, lineNo)
 				}
 
-				// extract filters
+				if !refTableInDumpMode {
 
-				filters := tableFilters.getTableFilters(dt.TableName)
-				if len(filters) == 0 {
-					return fmt.Errorf("could not extract filters for table %s", dt.TableName)
-				}
-
-				// process each row
-				for _, f := range filters {
-					row, err = f.Filter(row)
-					if err != nil {
-						return fmt.Errorf("filter error on table %s: %w", dt.TableName, err)
+					// extract filters
+					filters := tableFilters.getTableFilters(dt.TableName)
+					if len(filters) == 0 {
+						return fmt.Errorf("could not extract filters for table %s", dt.TableName)
 					}
-				}
 
-				if referenceMode {
-					rdt.latestRows = append(rdt.latestRows, row)
-				}
+					// process each row
+					for _, f := range filters {
+						row, err = f.Filter(row)
+						if err != nil {
+							return fmt.Errorf("filter error on table %s: %w", dt.TableName, err)
+						}
+					}
 
-				// convert columns back to t unless the Row has been deleted
-				if row.lineNo == 0 {
-					t = "row deleted"
-				} else {
-					t = strings.Join(row.Columns, "\t")
+					if referenceMode {
+						rdt.latestRows = append(rdt.latestRows, row)
+					}
+
+					// convert columns back to t unless the Row has been deleted
+					if row.lineNo == 0 {
+						t = "row deleted"
+					} else {
+						t = strings.Join(row.Columns, "\t")
+					}
 				}
 			}
 

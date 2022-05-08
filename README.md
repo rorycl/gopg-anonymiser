@@ -1,6 +1,6 @@
 # gopg-anonymiser
 
-Version 0.2.0
+Version 0.2.1
 
 A tool for anonymising postgresql dump files made using the Postgresql
 `pg_dump` command using row-wise filters.

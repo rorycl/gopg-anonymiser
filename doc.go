@@ -1,37 +1,20 @@
 /*
 gopg-anonymiser
 
-Note that this project is still in early development RCL April 2022
+Version 0.2.0
 
-A simple tool for anonymising postgresql dump files from the Postgresql
-`pg_dump` command, which uses row delete and column replacement filters
-set out in a settings toml file.
+A tool for anonymising postgresql dump files made using the Postgresql
+`pg_dump` command using row-wise filters.
 
 The tool takes advantage of the structure of `COPY` lines in dump files,
 that is those between a `COPY <schema>.<tablename> (...column list...)
 FROM stdin;` and a `\.` terminating line, to separate the lines into
 columns and to either remove lines or replace the columns specified.
 
-Overview
-
-The anonymiser can be used in a chain of pipes using `pg_dump` or
-`pg_restore`, for example:
-
-    pg_dump dbname -U <user> | \
-        ./gopg-anonymise -s settings.toml
-
-or to anonymise a pg\_dump custom format (`-Fc`) dump file to stdout:
-
-    pg_restore -f - /tmp/test.sqlc | \
-        ./gopg-anonymise -s setttings.toml
-
-or dump, anonymise and load:
-
-    pg_restore -f - /tmp/test.sqlc | \
-        ./gopg-anonymise -s setttings.toml | \
-            psql -d <dbname> -U <user>
-
-Use the `-t` (testmode) flag to only show altered rows.
+The filtering strategy is speedy and multi-gigabyte dump files can
+typically be processed in under a minute. Note that the use of the
+reference (or "foreign key") filter requires two scans of the dump file
+and to hold the referenced table/s in memory.
 
 Running the programme
 
@@ -63,23 +46,24 @@ each table to be anonymised one or more filters may be provided.
 Presently, apart from the row **delete** filter, four column replacement
 filters are provided:
 
-- uuid replaces: one or more columns with a new uuid
+- **uuid** replaces one or more columns with a new uuid
 
-- string replace: replaces the data in one or more columns with
-  replacement values
+- **string replace** replaces the data in one or more columns with
+  replacement values.
 
-- file replace: replaces the data in one or more columns with
+- **file replace** replaces the data in one or more columns with
   corresponding lines in the source file. If the source file is
   exhausted, cycle the inputs starting from the first line of the
   source.
 
-- reference replace: replaces data in one or more columns with the
+- **reference replace** replaces data in one or more columns with the
   value from one or more values from a reference table, requiring the
   specification of a local and remote key to make matches along the
   lines of a simple foreign key lookup. Note that the
   reference table is read into memory. Reference tables track their
   original and new values so that, for example, a local table can update
-  its `username` value from the new anonymised value in a `users` table.
+  its `username` value from the new anonymised value in a `users` table
+  even if the foreign key value has been updated.
 
 Each filter can be qualified by `If` and `NotIf` filters which determine
 if the filter should be run based on the contents of one or more columns
@@ -151,7 +135,26 @@ the file, the 6th entry is recycled (with the firstname "zachary"). The
 two notes in "testdata/newnotes.txt" are cycled through the three
 entries which are not NULL.
 
-	egrep -A 7 "COPY.*public.users" testdata/pg_dump.sql
+Original tables:
+
+	egrep -A 5 "COPY example_schema.events"
+
+	COPY example_schema.events (id, flags, data) FROM stdin;
+	1	{flag1,flag2}	{"a": "b"}
+	2	{"flag1,a","flag2,b"}	{"a": "c,b", "b": [1, 0]}
+	3	{flag3}	{"c": null}
+	4	{"flag3\ttab"}	{"d": "x  y"}
+	\.
+
+	egrep -A 4 "COPY public.fkexample" testdata/pg_dump.sql
+
+	COPY public.fkexample (id, user_id, firstname_materialized) FROM stdin;
+	1	1	ariadne
+	2	3	lucius
+	3	5	asterix
+	\.
+
+	egrep -A 7 "COPY public.users" testdata/pg_dump.sql
 
 	COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 	1	ariadne	augustus	$2a$06$xyhc3ZN0KLlw4XSM8YypjueqptvViUdTBQq3m2as3QMZ/lL6gH6ie	6b1b3a33-484a-4870-b6ec-58a8d72fc306	\N
@@ -161,6 +164,8 @@ entries which are not NULL.
 	5	asterix	a gaul	$2a$06$Llerb92vQ763qEX3e/v9WueqoCJdYu4F0mI65xo8Y1uif/vMTlsLq	46cebc75-8b9a-4666-94f3-8142e73c23d2	a "note", with commas, etc.
 	6	wormtail	wyckenhof	$2a$06$BEOCQhB5i5zPkAqe2pKq5O6zJmafmwjxkn4NB0mek3w5o70ytkxzm	708fd360-34bb-4ea4-8096-71920bfa7809	a note with a tab here:"\t"
 	\.
+
+Output (in test `-t` mode):
 
 	./gopg-anonymise -t -s testdata/settings.toml testdata/pg_dump.sql
 
@@ -176,6 +181,27 @@ entries which are not NULL.
 	4	william	williamson	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	242704da-6ba9-47b7-a84e-e2216b713324	this is a second note\twith a tab
 	5	vanessa	vaccarelli	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	913aae23-d9df-4c66-9f93-9ce59f94c907	this is the first note
 	6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	3395c1a1-d9ea-4803-81ba-65333a7698e3	this is a second note\twith a tab
+
+Pipes
+
+The anonymiser can be used in a chain of pipes using `pg_dump` or
+`pg_restore`, for example:
+
+    pg_dump dbname -U <user> | \
+        ./gopg-anonymise -s settings.toml
+
+or to anonymise a pg\_dump custom format (`-Fc`) dump file to stdout:
+
+    pg_restore -f - /tmp/test.sqlc | \
+        ./gopg-anonymise -s setttings.toml
+
+or dump, anonymise and load:
+
+    pg_restore -f - /tmp/test.sqlc | \
+        ./gopg-anonymise -s setttings.toml | \
+            psql -d <dbname> -U <user>
+
+Use the `-t` (testmode) flag to only show altered rows.
 
 Licence
 

@@ -44,6 +44,10 @@ func parseFlags() (args anonArgs, err error) {
 		args.dumpFilePath = "-" // set os.Stdout
 	} else {
 		args.dumpFilePath = options.Args.Input
+		_, err := os.Stat(args.dumpFilePath)
+		if os.IsNotExist(err) {
+			return args, err
+		}
 	}
 
 	// read settings file

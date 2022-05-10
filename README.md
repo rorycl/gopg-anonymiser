@@ -188,27 +188,6 @@ COPY public.users (id, firstname, lastname, password, uuid, notes) FROM stdin;
 6	zachary	zaiden	$2a$06$.wHg4l7yz1ijSfMwa7fNruq3ASx1plpkC.XcI1wXdghCb4ZJQsrtC	3395c1a1-d9ea-4803-81ba-65333a7698e3	this is a second note\twith a tab
 ```
 
-## Pipes
-
-The anonymiser can be used in a chain of pipes using `pg_dump` or
-`pg_restore`, for example:
-
-    pg_dump dbname -U <user> | \
-        ./gopg-anonymise -s settings.toml
-
-or to anonymise a pg\_dump custom format (`-Fc`) dump file to stdout:
-
-    pg_restore -f - /tmp/test.sqlc | \
-        ./gopg-anonymise -s setttings.toml
-
-or dump, anonymise and load:
-
-    pg_restore -f - /tmp/test.sqlc | \
-        ./gopg-anonymise -s setttings.toml | \
-            psql -d <dbname> -U <user>
-
-Use the `-t` (testmode) flag to only show altered rows.
-
 ## Licence
 
 This software is provided under an MIT licence.

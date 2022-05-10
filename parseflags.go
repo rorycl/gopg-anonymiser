@@ -21,8 +21,8 @@ type Options struct {
 	Output   string `short:"o" long:"output" description:"output file (otherwise stdout)"`
 	Test     bool   `short:"t" long:"testmode" description:"show only changed lines for testing"`
 	Args     struct {
-		Input string `default:"" description:"input file or stdin"`
-	} `positional-args:"yes"`
+		Input string `default:"" description:"input file"`
+	} `positional-args:"yes" required:"true"`
 }
 
 // parseFlags parses the command line options, taken out of main to
@@ -40,14 +40,10 @@ func parseFlags() (args anonArgs, err error) {
 	args.changedOnly = options.Test
 
 	// set dumpfile
-	if options.Args.Input == "" {
-		args.dumpFilePath = "-" // set os.Stdout
-	} else {
-		args.dumpFilePath = options.Args.Input
-		_, err := os.Stat(args.dumpFilePath)
-		if os.IsNotExist(err) {
-			return args, err
-		}
+	args.dumpFilePath = options.Args.Input
+	_, err = os.Stat(args.dumpFilePath)
+	if os.IsNotExist(err) {
+		return args, err
 	}
 
 	// read settings file
@@ -56,11 +52,6 @@ func parseFlags() (args anonArgs, err error) {
 		return args, fmt.Errorf("Could not read settings file: %s", err)
 	}
 	args.settingsToml = string(settings)
-
-	// open stdin or file for reading
-	if options.Args.Input == "" {
-		args.dumpFilePath = "-"
-	}
 
 	// open stdout or file for writing
 	if options.Output == "" || options.Output == "-" {

@@ -21,7 +21,7 @@ type Options struct {
 	Output   string `short:"o" long:"output" description:"output file (otherwise stdout)"`
 	Test     bool   `short:"t" long:"testmode" description:"show only changed lines for testing"`
 	Args     struct {
-		Input string `default:"" description:"input file"`
+		Input string `default:"" description:"input postgresql dump file"`
 	} `positional-args:"yes" required:"true"`
 }
 

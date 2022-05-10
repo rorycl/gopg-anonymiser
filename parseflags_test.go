@@ -8,7 +8,7 @@ import (
 
 func TestFlagParsing(t *testing.T) {
 
-	os.Args = []string{"prog", "-s", "testdata/settings.toml"}
+	os.Args = []string{"prog", "-s", "testdata/settings.toml", "/dev/random"}
 	_, err := parseFlags()
 	if err != nil {
 		t.Errorf("failed flag parsing %s", err)
@@ -27,7 +27,7 @@ func TestFlagParsingFail(t *testing.T) {
 
 func TestFlagParsingOutputStdout(t *testing.T) {
 
-	os.Args = []string{"prog", "-s", "testdata/settings.toml", "-o", "-"}
+	os.Args = []string{"prog", "-s", "testdata/settings.toml", "-o", "-", "/dev/random"}
 	_, err := parseFlags()
 	if err != nil {
 		t.Error("stdout output file should not fail")
@@ -43,7 +43,7 @@ func TestFlagParsingOutputFile(t *testing.T) {
 	}
 	defer os.Remove(outFile.Name())
 
-	os.Args = []string{"prog", "-s", "testdata/settings.toml", "-o", outFile.Name()}
+	os.Args = []string{"prog", "-s", "testdata/settings.toml", "-o", outFile.Name(), "/dev/random"}
 	_, err = parseFlags()
 	if err != nil {
 		t.Error("temporary file output should not fail")

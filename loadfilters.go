@@ -142,7 +142,7 @@ func loadFilters(settings Settings) (tableFilters, error) {
 }
 
 // check if the filters for each table are ok as a group, and calculate
-// the
+// the number of external references
 func (t *tableFilters) check() error {
 
 	if len(t.tableFilters) == 0 {
